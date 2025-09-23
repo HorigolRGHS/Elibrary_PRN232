@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <Sdk Name="Aspire.AppHost.Sdk" Version="9.0.0" />
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsAspireHost>true</IsAspireHost>
+    <UserSecretsId>08175822-86c7-48ad-b9b8-879fc3a91aed</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Aspire.Hosting.AppHost" Version="9.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Elib.Activity.Service\Elib.Activity.Service.csproj" />
+    <ProjectReference Include="..\Elib.Auth.Service\Elib.Auth.Service.csproj" />
+    <ProjectReference Include="..\Elib.Catalog.Service\Elib.Catalog.Service.csproj" />
+    <ProjectReference Include="..\Elib.Interaction.Service\Elib.Interaction.Service.csproj" />
+    <ProjectReference Include="..\Elib.Storage.Service\Elib.Storage.Service.csproj" />
+    <ProjectReference Include="..\Gatekeeper\Gatekeeper.csproj" />
+  </ItemGroup>
+
+</Project>

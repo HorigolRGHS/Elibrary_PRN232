@@ -1,0 +1,122 @@
+﻿using System;
+using System.Collections.Generic;
+using Microsoft.EntityFrameworkCore;
+
+namespace Elib.Activity.Service.Models;
+
+public partial class ActivityDb : DbContext
+{
+    public ActivityDb()
+    {
+    }
+
+    public ActivityDb(DbContextOptions<ActivityDb> options)
+        : base(options)
+    {
+    }
+
+    public virtual DbSet<AuditLog> AuditLogs { get; set; }
+
+    public virtual DbSet<DownloadHistory> DownloadHistories { get; set; }
+
+    public virtual DbSet<Notification> Notifications { get; set; }
+
+    public virtual DbSet<NotificationView> NotificationViews { get; set; }
+
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
+        => optionsBuilder.UseSqlServer("Server=.;Database=ELibrary;Trusted_Connection=True;TrustServerCertificate=True");
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<AuditLog>(entity =>
+        {
+            entity.HasKey(e => e.AuditId).HasName("PK__AuditLog__A17F23B86290FB3E");
+
+            entity.ToTable("AuditLog", "activity_svc");
+
+            entity.HasIndex(e => e.PerformedAt, "IX_AuditLog_PerformedAt");
+
+            entity.HasIndex(e => e.ServiceName, "IX_AuditLog_ServiceName");
+
+            entity.HasIndex(e => e.TableName, "IX_AuditLog_TableName");
+
+            entity.Property(e => e.AuditId).HasColumnName("AuditID");
+            entity.Property(e => e.Action).HasMaxLength(20);
+            entity.Property(e => e.PerformedAt)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime");
+            entity.Property(e => e.RecordId)
+                .HasMaxLength(100)
+                .HasColumnName("RecordID");
+            entity.Property(e => e.ServiceName).HasMaxLength(100);
+            entity.Property(e => e.TableName).HasMaxLength(100);
+            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+        });
+
+        modelBuilder.Entity<DownloadHistory>(entity =>
+        {
+            entity.HasKey(e => e.DownloadId).HasName("PK__Download__73D5A710AD403030");
+
+            entity.ToTable("DownloadHistory", "activity_svc");
+
+            entity.HasIndex(e => e.DocumentId, "IX_DownloadHistory_DocumentID");
+
+            entity.HasIndex(e => e.DownloadedDate, "IX_DownloadHistory_DownloadedDate");
+
+            entity.Property(e => e.DownloadId).HasColumnName("DownloadID");
+            entity.Property(e => e.CreatedDate)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime");
+            entity.Property(e => e.DocumentId).HasColumnName("DocumentID");
+            entity.Property(e => e.DownloadedDate)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime");
+            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+        });
+
+        modelBuilder.Entity<Notification>(entity =>
+        {
+            entity.HasKey(e => e.NotificationId).HasName("PK__Notifica__20CF2E321DE94467");
+
+            entity.ToTable("Notification", "activity_svc");
+
+            entity.HasIndex(e => e.CreatedDate, "IX_Notification_CreatedDate");
+
+            entity.HasIndex(e => e.ScheduledDate, "IX_Notification_ScheduledDate");
+
+            entity.HasIndex(e => e.Status, "IX_Notification_Status");
+
+            entity.Property(e => e.NotificationId).HasColumnName("NotificationID");
+            entity.Property(e => e.Content).HasMaxLength(1000);
+            entity.Property(e => e.CreatedDate)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime");
+            entity.Property(e => e.ScheduledDate).HasColumnType("datetime");
+            entity.Property(e => e.Status)
+                .HasMaxLength(20)
+                .HasDefaultValue("Pending");
+            entity.Property(e => e.Title).HasMaxLength(200);
+            entity.Property(e => e.Type).HasMaxLength(20);
+            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+        });
+
+        modelBuilder.Entity<NotificationView>(entity =>
+        {
+            entity.HasKey(e => new { e.NotificationId, e.ViewedBy }).HasName("PK__Notifica__E1992FEA503DC472");
+
+            entity.ToTable("NotificationView", "activity_svc");
+
+            entity.Property(e => e.NotificationId).HasColumnName("NotificationID");
+            entity.Property(e => e.CreatedDate)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime");
+            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+            entity.Property(e => e.ViewedDate).HasColumnType("datetime");
+        });
+
+        OnModelCreatingPartial(modelBuilder);
+    }
+
+    partial void OnModelCreatingPartial(ModelBuilder modelBuilder);
+}
