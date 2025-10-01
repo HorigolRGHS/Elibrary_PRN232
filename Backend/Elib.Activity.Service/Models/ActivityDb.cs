@@ -6,6 +6,7 @@ namespace Elib.Activity.Service.Models;
 
 public partial class ActivityDb : DbContext
 {
+    private readonly string _schema = "activity_svc";
     public ActivityDb()
     {
     }
@@ -31,9 +32,9 @@ public partial class ActivityDb : DbContext
     {
         modelBuilder.Entity<AuditLog>(entity =>
         {
-            entity.HasKey(e => e.AuditId).HasName("PK__AuditLog__A17F23B86290FB3E");
+            entity.HasKey(e => e.AuditId).HasName("PK__AuditLog__A17F23B805140108");
 
-            entity.ToTable("AuditLog", "activity_svc");
+            entity.ToTable("AuditLog", _schema);
 
             entity.HasIndex(e => e.PerformedAt, "IX_AuditLog_PerformedAt");
 
@@ -56,30 +57,26 @@ public partial class ActivityDb : DbContext
 
         modelBuilder.Entity<DownloadHistory>(entity =>
         {
-            entity.HasKey(e => e.DownloadId).HasName("PK__Download__73D5A710AD403030");
+            entity.HasKey(e => e.DownloadId).HasName("PK__Download__73D5A710234B6DDD");
 
-            entity.ToTable("DownloadHistory", "activity_svc");
+            entity.ToTable("DownloadHistory", _schema);
 
             entity.HasIndex(e => e.DocumentId, "IX_DownloadHistory_DocumentID");
 
             entity.HasIndex(e => e.DownloadedDate, "IX_DownloadHistory_DownloadedDate");
 
             entity.Property(e => e.DownloadId).HasColumnName("DownloadID");
-            entity.Property(e => e.CreatedDate)
-                .HasDefaultValueSql("(getdate())")
-                .HasColumnType("datetime");
             entity.Property(e => e.DocumentId).HasColumnName("DocumentID");
             entity.Property(e => e.DownloadedDate)
                 .HasDefaultValueSql("(getdate())")
                 .HasColumnType("datetime");
-            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
         });
 
         modelBuilder.Entity<Notification>(entity =>
         {
-            entity.HasKey(e => e.NotificationId).HasName("PK__Notifica__20CF2E321DE94467");
+            entity.HasKey(e => e.NotificationId).HasName("PK__Notifica__20CF2E32D82C7FE9");
 
-            entity.ToTable("Notification", "activity_svc");
+            entity.ToTable("Notification", _schema);
 
             entity.HasIndex(e => e.CreatedDate, "IX_Notification_CreatedDate");
 
@@ -103,15 +100,14 @@ public partial class ActivityDb : DbContext
 
         modelBuilder.Entity<NotificationView>(entity =>
         {
-            entity.HasKey(e => new { e.NotificationId, e.ViewedBy }).HasName("PK__Notifica__E1992FEA503DC472");
+            entity.HasKey(e => new { e.NotificationId, e.ViewedBy }).HasName("PK__Notifica__E1992FEA7F1C7C36");
 
-            entity.ToTable("NotificationView", "activity_svc");
+            entity.ToTable("NotificationView", _schema);
 
             entity.Property(e => e.NotificationId).HasColumnName("NotificationID");
             entity.Property(e => e.CreatedDate)
                 .HasDefaultValueSql("(getdate())")
                 .HasColumnType("datetime");
-            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
             entity.Property(e => e.ViewedDate).HasColumnType("datetime");
         });
 

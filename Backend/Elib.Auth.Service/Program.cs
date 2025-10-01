@@ -8,7 +8,7 @@ builder.AddServiceDefaults();
 // Add services to the container.
 builder.Services.AddDbContext<IdentityDb>(optionsAction =>
 {
-    optionsAction.UseSqlServer(builder.Configuration.GetConnectionString("identityService"));
+    optionsAction.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
 });
 
 builder.Services.AddControllers();

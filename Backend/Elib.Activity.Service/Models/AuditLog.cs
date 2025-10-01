@@ -1,12 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
 
 namespace Elib.Activity.Service.Models;
 
 public partial class AuditLog
 {
-    [Key]
     public long AuditId { get; set; }
 
     public string ServiceName { get; set; } = null!;

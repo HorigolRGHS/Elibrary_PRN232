@@ -1,4 +1,4 @@
-using Elib.Catalog.Service.Models;
+using Elib.Catalog.Service.Data;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -8,7 +8,7 @@ builder.AddServiceDefaults();
 // Add services to the container.
 builder.Services.AddDbContext<CatalogDb>(optionsAction =>
 {
-    optionsAction.UseSqlServer(builder.Configuration.GetConnectionString("catalogService"));
+    optionsAction.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
 });
 
 builder.Services.AddControllers();

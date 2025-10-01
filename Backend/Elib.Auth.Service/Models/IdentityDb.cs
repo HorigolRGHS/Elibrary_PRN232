@@ -6,6 +6,7 @@ namespace Elib.Auth.Service.Models;
 
 public partial class IdentityDb : DbContext
 {
+    private readonly string _schema = "identity_svc";
     public IdentityDb()
     {
     }
@@ -27,7 +28,7 @@ public partial class IdentityDb : DbContext
         {
             entity.HasKey(e => e.UserId).HasName("PK__User__1788CCAC5C0359CC");
 
-            entity.ToTable("User", "identity_svc");
+            entity.ToTable("User", _schema);
 
             entity.HasIndex(e => e.Active, "IX_User_Active");
 

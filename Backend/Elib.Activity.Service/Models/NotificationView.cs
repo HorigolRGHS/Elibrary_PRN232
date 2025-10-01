@@ -11,8 +11,7 @@ public partial class NotificationView
 
     public bool Viewed { get; set; }
 
-    public DateTime? ViewedDate { get; set; }
-
     public DateTime CreatedDate { get; set; }
 
+    public DateTime? ViewedDate { get; set; }
 }

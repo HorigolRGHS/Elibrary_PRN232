@@ -1,11 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using Elib.Catalog.Service.Models;
 using Microsoft.EntityFrameworkCore;
 
-namespace Elib.Catalog.Service.Models;
+namespace Elib.Catalog.Service.Data;
 
 public partial class CatalogDb : DbContext
 {
+    private readonly string _schema = "catalog_svc";
     public CatalogDb()
     {
     }
@@ -27,11 +29,12 @@ public partial class CatalogDb : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.HasDefaultSchema("catalog_svc");
         modelBuilder.Entity<Category>(entity =>
         {
             entity.HasKey(e => e.CategoryId).HasName("PK__Category__19093A2B9F42BEBB");
 
-            entity.ToTable("Category", "catalog_svc");
+            entity.ToTable("Category", _schema);
 
             entity.Property(e => e.CategoryId).HasColumnName("CategoryID");
             entity.Property(e => e.CategoryName).HasMaxLength(100);
@@ -46,7 +49,7 @@ public partial class CatalogDb : DbContext
         {
             entity.HasKey(e => e.DocumentId).HasName("PK__Document__1ABEEF6F155B517C");
 
-            entity.ToTable("Document", "catalog_svc");
+            entity.ToTable("Document", _schema);
 
             entity.HasIndex(e => e.CategoryId, "IX_Document_CategoryID");
 
@@ -92,7 +95,7 @@ public partial class CatalogDb : DbContext
         {
             entity.HasKey(e => e.SubjectId).HasName("PK__Subject__AC1BA3883ACB7B64");
 
-            entity.ToTable("Subject", "catalog_svc");
+            entity.ToTable("Subject", _schema);
 
             entity.Property(e => e.SubjectId).HasColumnName("SubjectID");
             entity.Property(e => e.CreatedDate)
