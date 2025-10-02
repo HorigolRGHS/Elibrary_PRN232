@@ -22,7 +22,8 @@ public partial class Document
     [StringLength(500, ErrorMessage = "File URL cannot exceed 500 characters")]
     [Url(ErrorMessage = "Invalid file URL format")]
     [Column(TypeName = "nvarchar(500)")]
-    public string? FileUrl { get; set; } = null;
+    [Required(ErrorMessage = "File URL is required")]
+    public string FileUrl { get; set; } = null!;
 
     [Range(0, int.MaxValue, ErrorMessage = "View count must be non-negative")]
     public int ViewCount { get; set; } = 0;
@@ -56,6 +57,8 @@ public partial class Document
 
     [Column(TypeName = "datetime")]
     public DateTime? DeletedDate { get; set; }
+
+    public int? DeletedBy { get; set; }
 
     public virtual Category? Category { get; set; }
 
