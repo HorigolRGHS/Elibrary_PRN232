@@ -3,6 +3,8 @@ using Microsoft.IdentityModel.Tokens;
 using Ocelot.DependencyInjection;
 using Ocelot.Middleware;
 using System.Text;
+using SharedLibrary.Auths;
+using SharedLibrary.Commons;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -14,48 +16,79 @@ builder.Services.AddHealthChecks();
 builder.Configuration
     .AddJsonFile("ocelot.json", optional: false, reloadOnChange: true);
 
-//builder.Services.AddCors(o => o.AddDefaultPolicy(p => p
-//    .AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod()));
 builder.Configuration
       .SetBasePath(builder.Environment.ContentRootPath)
       .AddOcelot();
 builder.Services
     .AddOcelot(builder.Configuration);
 
+// Bind JwtSettings from configuration (appsettings.json or environment)
+var jwtSection = builder.Configuration.GetSection("JwtSettings");
+var jwtSettings = jwtSection.Get<JwtSettings>();
 
-//var jwtKey = builder.Configuration["Jwt:Key"] ?? "dev-secret-change-me";
-//var issuer = builder.Configuration["Jwt:Issuer"] ?? "your-issuer";
-//var audience = builder.Configuration["Jwt:Audience"] ?? "your-audience";
-
-//builder.Services
-//    .AddAuthentication(options =>
-//    {
-//        options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-//        options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-//    })
-//    .AddJwtBearer(options =>
-//    {
-//        options.RequireHttpsMetadata = false;
-//        options.TokenValidationParameters = new TokenValidationParameters
-//        {
-//            ValidateIssuerSigningKey = true,
-//            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
-//            ValidateIssuer = true,
-//            ValidIssuer = issuer,
-//            ValidateAudience = true,
-//            ValidAudience = audience,
-//            ValidateLifetime = true,
-//            ClockSkew = TimeSpan.FromSeconds(30)
-//        };
-//    });
-
+// Custom middleware-based JWT validation at gateway
+builder.Services.AddSingleton(jwtSettings ?? throw new Exception("Gateway JwtSettings missing"));
 
 var app = builder.Build();
 
 app.MapDefaultEndpoints();
 
-//app.UseCors();
 app.UseHttpsRedirection();
+
+// Gateway JWT validation middleware: allow /auth/* without token
+app.Use(async (context, next) =>
+{
+    var path = context.Request.Path.Value ?? string.Empty;
+    if (path.StartsWith("/auth", StringComparison.OrdinalIgnoreCase))
+    {
+        await next();
+        return;
+    }
+
+    if (!context.Request.Headers.TryGetValue("Authorization", out var authHeader))
+    {
+        context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+        context.Response.ContentType = "application/json";
+        await context.Response.WriteAsJsonAsync(ApiResponse<string>.Fail("Missing Authorization header"));
+        return;
+    }
+
+    var header = authHeader.ToString();
+    if (!header.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+    {
+        context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+        context.Response.ContentType = "application/json";
+        await context.Response.WriteAsJsonAsync(ApiResponse<string>.Fail("Invalid Authorization header"));
+        return;
+    }
+
+    var token = header.Substring("Bearer ".Length).Trim();
+
+    try
+    {
+        var tokenHandler = new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler();
+        var validationParams = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidIssuer = jwtSettings!.Issuer,
+            ValidateAudience = true,
+            ValidAudience = jwtSettings!.Audience,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings!.SecretKey))
+        };
+
+        var principal = tokenHandler.ValidateToken(token, validationParams, out var _);
+        context.User = principal; 
+        await next();
+    }
+    catch (Exception ex)
+    {
+        context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+        context.Response.ContentType = "application/json";
+        await context.Response.WriteAsJsonAsync(ApiResponse<string>.Fail("Invalid token"));
+    }
+});
 
 app.MapGet("/", () => Results.Ok(new
 {
@@ -64,9 +97,6 @@ app.MapGet("/", () => Results.Ok(new
 }));
 app.MapGet("/health", () => Results.Ok(new { status = "ok", target = "gateway", at = DateTimeOffset.UtcNow }));
 app.MapHealthChecks("/healthz");
-
-app.UseAuthentication();
-app.UseAuthorization();
 
 app.UseOcelot().Wait();
 

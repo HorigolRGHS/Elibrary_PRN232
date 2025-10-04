@@ -49,7 +49,10 @@ public partial class IdentityDb : DbContext
                 .HasMaxLength(500)
                 .HasColumnName("ImageURL");
             entity.Property(e => e.PasswordHash).HasMaxLength(256);
-            entity.Property(e => e.Role).HasMaxLength(20);
+            //
+            entity.Property(e => e.Role)
+                  .HasConversion<string>()
+                  .HasMaxLength(20);
             entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
         });
 
