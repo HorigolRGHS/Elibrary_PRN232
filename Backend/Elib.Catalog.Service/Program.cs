@@ -1,18 +1,31 @@
 using Elib.Catalog.Service.Data;
 using Microsoft.EntityFrameworkCore;
+using SharedLibrary.Auths;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
 
-// Add services to the container.
+
 builder.Services.AddDbContext<CatalogDb>(optionsAction =>
 {
     optionsAction.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
 });
 
+builder.Services.AddJwtAuth(builder.Configuration);
+
+
+builder.Services.AddHttpClient("AuthService", c =>
+{
+    var baseUrl = builder.Configuration["AuthService:BaseUrl"];
+    if (!string.IsNullOrWhiteSpace(baseUrl))
+        c.BaseAddress = new Uri(baseUrl);
+});
+
+
+builder.Services.AddScoped<IUserSessionValidator, HttpUserSessionValidator>();
+
 builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -29,6 +42,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();

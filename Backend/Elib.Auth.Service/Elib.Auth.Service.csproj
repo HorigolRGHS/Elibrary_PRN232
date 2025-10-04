@@ -23,11 +23,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\ELibrary_PRN232.ServiceDefaults\ELibrary_PRN232.ServiceDefaults.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Repositories\" />
-    <Folder Include="Services\" />
+    <ProjectReference Include="..\SharedLibrary\SharedLibrary.csproj" />
   </ItemGroup>
 
 </Project>

@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Elib.Activity.Service.Controllers
@@ -18,6 +19,7 @@ namespace Elib.Activity.Service.Controllers
             _logger = logger;
         }
 
+        [Authorize(Roles = "Admin,Customer")]
         [HttpGet(Name = "GetWeatherForecast")]
         public IEnumerable<WeatherForecast> Get()
         {

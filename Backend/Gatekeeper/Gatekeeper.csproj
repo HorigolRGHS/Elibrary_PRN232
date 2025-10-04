@@ -13,7 +13,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Elib.Activity.Service\Elib.Activity.Service.csproj" />
     <ProjectReference Include="..\ELibrary_PRN232.ServiceDefaults\ELibrary_PRN232.ServiceDefaults.csproj" />
+    <ProjectReference Include="..\SharedLibrary\SharedLibrary.csproj" />
   </ItemGroup>
 
 </Project>

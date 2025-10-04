@@ -20,7 +20,7 @@ public partial class User
 
     public string? ImageUrl { get; set; }
 
-    public UserRole Role { get; set; } = UserRole.Customer!;
+    public UserRole Role { get; set; } = UserRole.Customer;
 
     public bool Active { get; set; }
 
