@@ -1,4 +1,7 @@
 using Elib.Activity.Service.Models;
+using Elib.Activity.Service.Profiles;
+using Elib.Activity.Service.Repositories;
+using Elib.Activity.Service.Services;
 using Microsoft.EntityFrameworkCore;
 using SharedLibrary.Auths;
 
@@ -17,6 +20,12 @@ builder.Services.AddDbContext<ActivityDb>(optionsAction =>
     optionsAction.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
 });
 
+///////////////////////////
+
+builder.Services.AddScoped<DbContext, ActivityDb>();
+builder.Services.AddHttpContextAccessor();
+//////////////////////////
+
 builder.Services.AddJwtAuth(builder.Configuration);
 
 // HttpClient to Auth.Service for user validation
@@ -28,6 +37,18 @@ builder.Services.AddHttpClient("AuthService", c =>
 });
 
 builder.Services.AddScoped<IUserSessionValidator, HttpUserSessionValidator>();
+
+////////////////////////
+
+builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
+
+builder.Services.AddAutoMapper(cfg =>
+{
+    cfg.AddMaps(typeof(NotificationProfile).Assembly);
+});
+
+////////////////////////
 
 var app = builder.Build();
 
