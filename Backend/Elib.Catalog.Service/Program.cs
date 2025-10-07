@@ -1,6 +1,10 @@
 using Elib.Catalog.Service.Data;
+using Elib.Catalog.Service.Profiles;
+using Elib.Catalog.Service.Repositories;
+using Elib.Catalog.Service.Services;
 using Microsoft.EntityFrameworkCore;
 using SharedLibrary.Auths;
+using SharedLibrary.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -24,6 +28,16 @@ builder.Services.AddHttpClient("AuthService", c =>
 
 
 builder.Services.AddScoped<IUserSessionValidator, HttpUserSessionValidator>();
+
+builder.Services.AddScoped(typeof(IBaseRepository<>), typeof(BaseRepository<>));
+builder.Services.AddScoped<ISubjectRepository, SubjectRepository>();
+builder.Services.AddScoped<ISubjectService, SubjectService>();
+
+builder.Services.AddAutoMapper(cfg =>
+{
+    cfg.AddMaps(typeof(SubjectProfiles).Assembly);
+});
+
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
