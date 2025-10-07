@@ -1,21 +1,59 @@
 using Elib.Interaction.Service.Models;
+using Elib.Interaction.Service.Repositories;
+using Elib.Interaction.Service.Services;
+using Elib.Interaction.Service.Profiles;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.OData;
 using Microsoft.EntityFrameworkCore;
 using SharedLibrary.Auths;
+using SharedLibrary.Commons;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
 
-// Add services to the container.
+
+builder.Services.AddControllers()
+    .AddOData(options => options
+        .Select()
+        .Filter()
+        .OrderBy()
+        .Expand()
+        .Count()
+        .SetMaxTop(100)
+    )
+    .ConfigureApiBehaviorOptions(options =>
+    {
+        options.InvalidModelStateResponseFactory = context =>
+        {
+            var firstErrorMessage = context.ModelState.Values
+                .SelectMany(v => v.Errors)
+                .Select(e => e.ErrorMessage)
+                .FirstOrDefault() ?? "Invalid request";
+
+            var resp = ApiResponse<object>.Fail(firstErrorMessage);
+            return new BadRequestObjectResult(resp);
+        };
+    });
+
+
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
+
 builder.Services.AddDbContext<InteractionDb>(optionsAction =>
 {
     optionsAction.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
 });
 
-// JWT/AuthN
+
+builder.Services.AddScoped<DbContext, InteractionDb>();
+builder.Services.AddHttpContextAccessor();
+
+
 builder.Services.AddJwtAuth(builder.Configuration);
 
-// HttpClient to Auth.Service for user validation
+
 builder.Services.AddHttpClient("AuthService", c =>
 {
     var baseUrl = builder.Configuration["AuthService:BaseUrl"];
@@ -23,18 +61,28 @@ builder.Services.AddHttpClient("AuthService", c =>
         c.BaseAddress = new Uri(baseUrl);
 });
 
-builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-
 builder.Services.AddScoped<IUserSessionValidator, HttpUserSessionValidator>();
+
+
+builder.Services.AddScoped<IReportRepository, ReportRepository>();
+builder.Services.AddScoped<IReportService, ReportService>();
+
+// Activity (Notification) 
+//builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
+
+
+// =============================================
+builder.Services.AddAutoMapper(cfg =>
+{
+    cfg.AddMaps(typeof(ReportProfile).Assembly);
+});
+
+// =============================================
 
 var app = builder.Build();
 
 app.MapDefaultEndpoints();
 
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -42,10 +90,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
 app.UseAuthentication();
 app.UseAuthorization();
-
 app.MapControllers();
 
 app.Run();
