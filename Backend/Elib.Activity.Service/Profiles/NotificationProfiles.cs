@@ -12,20 +12,20 @@ namespace Elib.Activity.Service.Profiles
             CreateMap<Notification, NotificationDTO>().ReverseMap();
 
             // DTO → Model
-            CreateMap<CreateNotificationDTO, Notification>()
+            CreateMap<NotificationCreateDTO, Notification>()
                 .ForMember(dest => dest.CreatedDate, opt => opt.MapFrom(_ => DateTime.UtcNow))
                 .ForMember(dest => dest.Status, opt => opt.MapFrom(_ => "Pending"))
                 .ForMember(dest => dest.UpdatedDate, opt => opt.Ignore())
                 .ForMember(dest => dest.CreatedBy, opt => opt.Ignore()); 
 
             // DTO → Model
-            CreateMap<UpdateNotificationDTO, Notification>()
+            CreateMap<NotificationUpdateDTO, Notification>()
                 .ForMember(dest => dest.UpdatedDate, opt => opt.MapFrom(_ => DateTime.UtcNow))
                 .ForMember(dest => dest.CreatedDate, opt => opt.Ignore())
                 .ForMember(dest => dest.CreatedBy, opt => opt.Ignore());
 
             // NotificationView → DTO
-            CreateMap<NotificationView, ViewNotificationDTO>().ReverseMap();
+            CreateMap<NotificationView, NotificationViewDTO>().ReverseMap();
         }
     }
 }

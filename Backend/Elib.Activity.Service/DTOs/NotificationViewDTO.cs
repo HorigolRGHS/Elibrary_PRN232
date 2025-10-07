@@ -1,6 +1,6 @@
 ﻿namespace Elib.Activity.Service.DTOs
 {
-    public class ViewNotificationDTO
+    public class NotificationViewDTO
     {
         public int NotificationId { get; set; }
         public int ViewedBy { get; set; }

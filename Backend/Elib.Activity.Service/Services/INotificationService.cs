@@ -10,7 +10,7 @@ namespace Elib.Activity.Service.Services
 
         IQueryable<NotificationDTO> AsQueryable();
 
-        Task<ApiResponse<NotificationDTO>> CreateAsync(CreateNotificationDTO dto);
-        Task<ApiResponse<NotificationDTO>> UpdateAsync(UpdateNotificationDTO dto);
+        Task<ApiResponse<NotificationDTO>> CreateAsync(NotificationCreateDTO dto);
+        Task<ApiResponse<NotificationDTO>> UpdateAsync(NotificationUpdateDTO dto);
     }
 }

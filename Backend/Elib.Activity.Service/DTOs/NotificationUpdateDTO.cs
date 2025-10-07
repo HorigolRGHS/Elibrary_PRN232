@@ -2,7 +2,7 @@
 
 namespace Elib.Activity.Service.DTOs
 {
-    public class UpdateNotificationDTO
+    public class NotificationUpdateDTO
     {
         [Required]
         public int NotificationId { get; set; }

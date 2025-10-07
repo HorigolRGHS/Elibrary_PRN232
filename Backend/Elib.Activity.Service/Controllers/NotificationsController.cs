@@ -63,7 +63,7 @@ namespace Elib.Activity.Service.Controllers
         [HttpPut("{id}")]
         [Authorize(Roles = "Admin")]
         public async Task<ActionResult<ApiResponse<NotificationDTO>>>
-            UpdateNotification(int id, [FromBody] UpdateNotificationDTO dto)
+            UpdateNotification(int id, [FromBody] NotificationUpdateDTO dto)
         {
             if (id != dto.NotificationId)
                 return BadRequest(ApiResponse<NotificationDTO>.Fail("ID mismatch."));
@@ -80,7 +80,7 @@ namespace Elib.Activity.Service.Controllers
         [HttpPost]
         [Authorize(Roles = "Admin")]
         public async Task<ActionResult<ApiResponse<NotificationDTO>>>
-            CreateNotification([FromBody] CreateNotificationDTO dto)
+            CreateNotification([FromBody] NotificationCreateDTO dto)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ApiResponse<NotificationDTO>.Fail("Invalid data."));

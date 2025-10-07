@@ -2,7 +2,7 @@
 
 namespace Elib.Activity.Service.DTOs
 {
-    public class CreateNotificationDTO
+    public class NotificationCreateDTO
     {
         [Required, MinLength(3)]
         public string Title { get; set; } = null!;

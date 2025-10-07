@@ -63,7 +63,7 @@ namespace Elib.Activity.Service.Services
 
         // ===============================================
         // CREATE
-        public async Task<ApiResponse<NotificationDTO>> CreateAsync(CreateNotificationDTO dto)
+        public async Task<ApiResponse<NotificationDTO>> CreateAsync(NotificationCreateDTO dto)
         {
      
             var entity = _mapper.Map<Notification>(dto);
@@ -87,7 +87,7 @@ namespace Elib.Activity.Service.Services
 
         // ===============================================
         // UPDATE
-        public async Task<ApiResponse<NotificationDTO>> UpdateAsync(UpdateNotificationDTO dto)
+        public async Task<ApiResponse<NotificationDTO>> UpdateAsync(NotificationUpdateDTO dto)
         {
             var entity = await _repository.GetByIdAsync(dto.NotificationId);
             if (entity == null)
