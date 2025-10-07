@@ -19,6 +19,26 @@ namespace Elib.Activity.Service.Services
             _mapper = mapper;
             _httpContextAccessor = httpContextAccessor;
         }
+        // ===============================================
+
+        public IQueryable<NotificationDTO> AsQueryable()
+        {
+            var query = _repository.AsQueryable()
+                .Select(n => new NotificationDTO
+                {
+                    NotificationId = n.NotificationId,
+                    Title = n.Title,
+                    Content = n.Content,
+                    CreatedBy = n.CreatedBy,
+                    CreatedDate = n.CreatedDate,
+                    UpdatedDate = n.UpdatedDate,
+                    ScheduledDate = n.ScheduledDate,
+                    Type = n.Type,
+                    Status = n.Status
+                });
+
+            return query;
+        }
 
         // ===============================================
         // GET ALL

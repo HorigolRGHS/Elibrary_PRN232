@@ -10,6 +10,7 @@ using Elib.Activity.Service.Services;
 using Elib.Activity.Service.DTOs;
 using SharedLibrary.Commons;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.OData.Query;
 
 namespace Elib.Activity.Service.Controllers
 {
@@ -23,6 +24,16 @@ namespace Elib.Activity.Service.Controllers
         public NotificationsController(INotificationService notificationService)
         {
             _notificationService = notificationService;
+        }
+
+        // GET: api/Notifications/odata?$filter=Type eq 'System'&$orderby=CreatedDate desc&$top=5&$skip=0&$count=true
+        [HttpGet("odata")]
+        [EnableQuery] // Bật filter/sort/paging/select từ client
+        [Authorize(Roles = "Admin,Customer")]
+        public IActionResult GetNotificationsOData()
+        {
+            var query = _notificationService.AsQueryable();
+            return Ok(query);
         }
 
         // GET: api/Notifications

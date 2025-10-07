@@ -24,5 +24,10 @@ namespace Elib.Activity.Service.Repositories
 
             return await query.ToPagedResultAsync(page, pageSize);
         }
+
+        public IQueryable<Notification> AsQueryable()
+        {
+            return _dbSet.AsQueryable();
+        }
     }
 }

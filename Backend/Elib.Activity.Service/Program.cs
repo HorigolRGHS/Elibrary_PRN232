@@ -2,15 +2,43 @@ using Elib.Activity.Service.Models;
 using Elib.Activity.Service.Profiles;
 using Elib.Activity.Service.Repositories;
 using Elib.Activity.Service.Services;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.OData;
 using Microsoft.EntityFrameworkCore;
 using SharedLibrary.Auths;
+using SharedLibrary.Commons;
+using Microsoft.OData.ModelBuilder;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
 
 // Add services to the container.
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddOData(options => options
+        .Select()
+        .Filter()
+        .OrderBy()
+        .Expand()
+        .Count()
+        .SetMaxTop(100)
+
+    // .AddRouteComponents("odata", modelBuilder.GetEdmModel())
+    )
+    .ConfigureApiBehaviorOptions(options =>
+    {
+        options.InvalidModelStateResponseFactory = context =>
+        {
+            var firstErrorMessage = context.ModelState.Values
+                .SelectMany(v => v.Errors)
+                .Select(e => e.ErrorMessage)
+                .FirstOrDefault() ?? "Invalid request";
+
+            var resp = ApiResponse<object>.Fail(firstErrorMessage);
+            return new BadRequestObjectResult(resp);
+        };
+    });
+
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
