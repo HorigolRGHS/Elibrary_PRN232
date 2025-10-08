@@ -1,73 +1,59 @@
+using AutoMapper;
+using AutoMapper.QueryableExtensions;
+using Elib.Auth.Service.DTOs.Admin;
 using Elib.Auth.Service.Models;
-using SharedLibrary.Commons;
 using Elib.Auth.Service.Repositories;
+using Microsoft.EntityFrameworkCore;
+using SharedLibrary.Commons;
 
 namespace Elib.Auth.Service.Services
 {
     public class UserService : IUserService
     {
-        private readonly IUserRepository _repo;
-
-        public UserService(IUserRepository repo)
+        private readonly IUserRepository _userRepo;
+        private readonly IMapper _mapper;
+        public UserService(IUserRepository userRepo, IMapper mapper)
         {
-            _repo = repo;
-        }
-
-        public async Task<ApiResponse<User>> CreateAsync(User entity)
-        {
-            await _repo.AddAsync(entity);
-            await _repo.SaveChangesAsync();
-            return ApiResponse<User>.Ok(entity);
-        }
-
-        public async Task<ApiResponse<bool>> DeleteAsync(int id)
-        {
-            var existing = await _repo.GetByIdAsync(id);
-            if (existing == null)
-                return ApiResponse<bool>.Fail("User not found");
-
-            await _repo.DeleteAsync(existing);
-            await _repo.SaveChangesAsync();
-            return ApiResponse<bool>.Ok(true);
-        }
-
-        public async Task<ApiResponse<IEnumerable<User>>> GetAllAsync()
-        {
-            var items = await _repo.GetAllAsync();
-            return ApiResponse<IEnumerable<User>>.Ok(items);
+            _userRepo = userRepo;
+            _mapper = mapper;
         }
 
         public async Task<ApiResponse<User>> GetByEmailAsync(string email)
         {
-            var item = await _repo.GetByEmailAsync(email);
-            if (item == null) return ApiResponse<User>.Fail("User not found");
-            return ApiResponse<User>.Ok(item);
+            var user = await _userRepo.GetByEmailAsync(email);
+            return user == null ? ApiResponse<User>.Fail("Not found") : ApiResponse<User>.Ok(user);
         }
 
-        public async Task<ApiResponse<User>> GetByIdAsync(int id)
+        public IQueryable<UserListItemDTO> GetAll(int userId)
         {
-            var item = await _repo.GetByIdAsync(id);
-            if (item == null) return ApiResponse<User>.Fail("User not found");
-            return ApiResponse<User>.Ok(item);
+            return _userRepo.AsQueryable()
+       .Where(u => u.UserId != userId)
+       .ProjectTo<UserListItemDTO>(_mapper.ConfigurationProvider);
         }
 
-        public async Task<ApiResponse<User>> UpdateAsync(User entity)
+        public async Task<ApiResponse<string>> UpdateUserAsync(UpdateUserAccountDTO dto)
         {
-            var existing = await _repo.GetByIdAsync(entity.UserId);
-            if (existing == null)
-                return ApiResponse<User>.Fail("User not found");
+            var user = await _userRepo.GetByIdAsync(dto.UserId);
+            if (user == null || user.Role != UserRole.Customer)
+                return ApiResponse<string>.Fail("User not found or not a customer");
+            user.FullName = dto.FullName;
+            if (user.Active != dto.Active)
+            {
+                user.Active = dto.Active;
+                user.DeletedDate = dto.Active ? null : DateTime.UtcNow;
+            }
+            user.UpdatedDate = DateTime.UtcNow;
+            await _userRepo.UpdateAsync(user);
+            return ApiResponse<string>.Ok(null, "Update user successfully");
+        }
 
-   
-            existing.FullName = entity.FullName;
-            existing.Email = entity.Email;
-            existing.ImageUrl = entity.ImageUrl;
-            existing.Role = entity.Role;
-            existing.Active = entity.Active;
-            existing.UpdatedDate = DateTime.UtcNow;
-
-            await _repo.UpdateAsync(existing);
-            await _repo.SaveChangesAsync();
-            return ApiResponse<User>.Ok(existing);
+        public async Task<ApiResponse<string>> DeleteUserAsync(int userId)
+        {
+            var user = await _userRepo.GetByIdAsync(userId);
+            if (user == null)
+                return ApiResponse<string>.Fail("User not found");
+            await _userRepo.DeleteAsync(user);
+            return ApiResponse<string>.Ok(null, "Delete user successfully");
         }
     }
 }

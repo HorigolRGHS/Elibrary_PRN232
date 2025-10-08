@@ -46,7 +46,7 @@ namespace SharedLibrary.Auths
                 issuer: _settings.Issuer,
                 audience: _settings.Audience,
                 claims: claims,
-                expires: DateTime.UtcNow.AddMinutes(_settings.ExpiryMinutes),
+                expires: DateTime.UtcNow.AddDays(_settings.ExpiryDays),
                 signingCredentials: creds
             );
 

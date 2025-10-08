@@ -2,7 +2,7 @@
   "Routes": [
     {
       "UpstreamPathTemplate": "/auth/{everything}",
-      "UpstreamHttpMethod": [ "GET", "POST", "PUT" ],
+      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE" ],
       "DownstreamPathTemplate": "/api/{everything}",
       "DownstreamHostAndPorts": [
         { "Host": "localhost", "Port": 7001 }
