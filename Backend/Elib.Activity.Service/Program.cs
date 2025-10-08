@@ -1,5 +1,4 @@
 ﻿using Elib.Activity.Service.Messaging.Clients;
-using Elib.Activity.Service.Messaging.Comsumer;
 using Elib.Activity.Service.Models;
 using Elib.Activity.Service.Profiles;
 using Elib.Activity.Service.Repositories;
@@ -11,8 +10,8 @@ using Microsoft.EntityFrameworkCore;
 using SharedLibrary.Audits;
 using SharedLibrary.Auths;
 using SharedLibrary.Commons;
-using Microsoft.OData.ModelBuilder;
 using SharedLibrary.Messages;
+using Elib.Activity.Service.Messaging.Consumer;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -74,15 +73,20 @@ builder.Services.AddScoped<IUserSessionValidator, HttpUserSessionValidator>();
 builder.Services.AddScoped<IDownloadHistoryRepository, DownloadHistoryRepository>();
 builder.Services.AddScoped<IDownloadHistoryService, DownloadHistoryService>();
 builder.Services.AddScoped<ICatalogClient, CatalogClient>();
+builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
 
 builder.Services.AddAutoMapper(cfg =>
 {
     cfg.AddMaps(typeof(DownloadHistoryProfile).Assembly);
+    cfg.AddMaps(typeof(NotificationProfile).Assembly);
 });
 
 
 builder.Services.AddMassTransit(cfg =>
 {
+    cfg.AddConsumer<DocumentDownloadedConsumer>();
+
     cfg.SetKebabCaseEndpointNameFormatter();
 
     cfg.UsingRabbitMq((context, bus) =>
@@ -106,21 +110,8 @@ builder.Services.AddMassTransit(cfg =>
 
     cfg.AddRequestClient<GetDocumentSummary>(new Uri("queue:catalog.get-document-summary"));
 });
-builder.Services.AddScoped<ICatalogClient, CatalogClient>();
 
 builder.Services.AddJwtAuthSwagger();
-
-////////////////////////
-
-builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
-builder.Services.AddScoped<INotificationService, NotificationService>();
-
-builder.Services.AddAutoMapper(cfg =>
-{
-    cfg.AddMaps(typeof(NotificationProfile).Assembly);
-});
-
-////////////////////////
 
 var app = builder.Build();
 

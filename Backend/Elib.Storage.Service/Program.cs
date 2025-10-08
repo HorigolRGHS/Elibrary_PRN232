@@ -13,6 +13,7 @@ builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddJwtAuthSwagger();
 
 builder.Services.AddJwtAuth(builder.Configuration);
 
@@ -26,23 +27,9 @@ builder.Services.AddHttpClient("AuthService", c =>
 builder.Services.AddScoped<IUserSessionValidator, HttpUserSessionValidator>();
 builder.Services.AddScoped<IUploadImageService, ImgBBService>();
 builder.Services.AddScoped<IBlobService, AzureStorageService>();
+builder.Services.AddScoped<IPdfPreviewService, PdfPreviewService>();
 
-builder.Services.AddSwaggerGen(c =>
-{
-    c.SwaggerDoc("v1", new OpenApiInfo
-    {
-        Title = "Elib.Storage.Service",
-        Version = "v1"
-    });
-
-    c.EnableAnnotations();
-
-    c.CustomSchemaIds(t => t.FullName);
-
-    c.MapType<IFormFile>(() => new OpenApiSchema { Type = "string", Format = "binary" });
-
-    c.SupportNonNullableReferenceTypes();
-});
+builder.Services.AddSwaggerGen();
 
 
 builder.Services.AddMassTransit(x =>

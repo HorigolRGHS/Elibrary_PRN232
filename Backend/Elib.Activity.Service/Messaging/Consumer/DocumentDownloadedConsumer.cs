@@ -2,7 +2,7 @@
 using MassTransit;
 using SharedLibrary.Messages;
 
-namespace Elib.Activity.Service.Messaging.Comsumer
+namespace Elib.Activity.Service.Messaging.Consumer
 {
     public class DocumentDownloadedConsumer : IConsumer<DocumentDownloaded>
     {
@@ -21,26 +21,25 @@ namespace Elib.Activity.Service.Messaging.Comsumer
         {
             var m = context.Message;
 
-            var userId = m.UserId;
 
             try
             {
                 await _history.RecordUserDownloadAsync(
                     documentId: m.DocumentId,
-                    userId: userId,
+                    userId: m.UserId,
                     when: m.DownloadedAt,
                     CancellationToken.None
                 );
 
                 _logger.LogInformation(
                     "[DownloadLogged] DocId={DocId} UserId={UserId} File={File} At={AtUtc}",
-                    m.DocumentId, userId, m.FileName, m.DownloadedAt);
+                    m.DocumentId, m.UserId, m.FileName, m.DownloadedAt);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex,
                     "Failed to record download. DocId={DocId} UserId={UserId} File={File}",
-                    m.DocumentId, userId, m.FileName);
+                    m.DocumentId, m.UserId, m.FileName);
 
                 throw;
             }

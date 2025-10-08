@@ -1,12 +1,14 @@
-﻿using System.ComponentModel.DataAnnotations;
-using System.Security.Claims;
-using Elib.Storage.Service.Services;
+﻿using Elib.Storage.Service.Services;
 using MassTransit;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Net.Http.Headers;
 using SharedLibrary.Auths;
 using SharedLibrary.Messages; 
 using Swashbuckle.AspNetCore.Annotations;
+using System.ComponentModel.DataAnnotations;
+using System.Security.Claims;
 
 namespace Elib.Storage.Service.Controllers
 {
@@ -37,6 +39,7 @@ namespace Elib.Storage.Service.Controllers
             _logger = logger;
         }
 
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "Admin,Customer")]
         [HttpPost("upload/image")]
         [Consumes("multipart/form-data")]
         [SwaggerResponse(200, "Image uploaded successfully", Type = typeof(UploadResponse))]
@@ -57,7 +60,7 @@ namespace Elib.Storage.Service.Controllers
 
                 var imageUrl = await _imageService.UploadImageAsync(file.File);
                 _logger.LogInformation("Image uploaded successfully to ImgBB: {ImageUrl}", imageUrl);
-                return Ok(new UploadResponse { Success = true, Url = imageUrl });
+                return Ok(new UploadResponse { Success = true, FileName = imageUrl });
             }
             catch (ArgumentException ex)
             {
@@ -71,6 +74,7 @@ namespace Elib.Storage.Service.Controllers
             }
         }
 
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "Admin,Customer")]
         [HttpPost("upload/file")]
         [Consumes("multipart/form-data")]
         [SwaggerResponse(200, "File uploaded successfully", Type = typeof(UploadResponse))]
@@ -90,7 +94,7 @@ namespace Elib.Storage.Service.Controllers
                 var uniqueFileName = await _blobService.GetUniqueFileNameAsync(file.File.FileName);
                 var fileUrl = await _blobService.UploadFileAsync(stream, uniqueFileName);
                 _logger.LogInformation("File uploaded successfully to Azure Blob: {FileUrl}", fileUrl);
-                return Ok(new UploadResponse { Success = true, Url = fileUrl });
+                return Ok(new UploadResponse { Success = true, FileName = uniqueFileName });
             }
             catch (Exception ex)
             {
@@ -121,10 +125,12 @@ namespace Elib.Storage.Service.Controllers
             }
         }
 
+        [AllowAnonymous] // 👈 Cho phép GUEST truy cập endpoint này
         [HttpGet("download")]
         [Produces("application/pdf")]
         [SwaggerResponse(200)]
         [SwaggerResponse(400, Type = typeof(ErrorResponse))]
+        [SwaggerResponse(401, Type = typeof(ErrorResponse))]
         [SwaggerResponse(404, Type = typeof(ErrorResponse))]
         [SwaggerResponse(500, Type = typeof(ErrorResponse))]
         public async Task<IActionResult> DownloadFile(
@@ -140,11 +146,12 @@ namespace Elib.Storage.Service.Controllers
             {
                 Response.Headers["Accept-Ranges"] = "bytes";
 
-                var userId = User.GetUserIdOrThrow();
+                var isPreview = string.Equals(mode, "preview", StringComparison.OrdinalIgnoreCase);
                 var userName = User.Identity?.Name ?? "Guest";
 
-                if (string.Equals(mode, "preview", StringComparison.OrdinalIgnoreCase))
+                if (isPreview)
                 {
+                    // ⬇️ Preview KHÔNG yêu cầu JWT
                     var (srcStream, _) = await _blobService.DownloadFileStreamAsync(fileName);
                     if (srcStream == null)
                         return NotFound(new ErrorResponse { Success = false, Message = "File not found" });
@@ -170,6 +177,12 @@ namespace Elib.Storage.Service.Controllers
                 }
                 else
                 {
+                    // ⬇️ FULL download: bắt buộc đăng nhập
+                    if (!(User?.Identity?.IsAuthenticated ?? false))
+                        return Unauthorized(new ErrorResponse { Success = false, Message = "Authentication required" });
+
+                    var userId = User.GetUserIdOrThrow();
+
                     var (stream, contentType) = await _blobService.DownloadFileStreamAsync(fileName);
                     if (stream == null)
                         return NotFound(new ErrorResponse { Success = false, Message = "File not found" });
@@ -181,6 +194,7 @@ namespace Elib.Storage.Service.Controllers
                     };
                     Response.Headers[HeaderNames.ContentDisposition] = cd.ToString();
 
+                    // Chỉ publish sự kiện khi tải FULL
                     Response.OnCompleted(async () =>
                     {
                         try
@@ -212,7 +226,7 @@ namespace Elib.Storage.Service.Controllers
     public class UploadResponse
     {
         public bool Success { get; set; }
-        public string Url { get; set; } = default!;
+        public string FileName { get; set; } = default!;
     }
 
     public class ExistsResponse
