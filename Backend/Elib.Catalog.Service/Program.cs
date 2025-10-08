@@ -1,4 +1,5 @@
 using Elib.Catalog.Service.Data;
+using Elib.Catalog.Service.DTOs;
 using Elib.Catalog.Service.Messaging.Consumers;
 using Elib.Catalog.Service.Models;
 using Elib.Catalog.Service.Profiles;
@@ -23,19 +24,34 @@ builder.Services.AddDbContext<CatalogDb>(optionsAction =>
     optionsAction.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
 });
 
-builder.Services.AddJwtAuth(builder.Configuration);
-
-
-builder.Services.AddHttpClient("AuthService", c =>
+builder.Services.AddAutoMapper(cfg =>
 {
-    var baseUrl = builder.Configuration["AuthService:BaseUrl"];
-    if (!string.IsNullOrWhiteSpace(baseUrl))
-        c.BaseAddress = new Uri(baseUrl);
+    cfg.AddMaps(typeof(CategoryProfile).Assembly);
 });
 
+var modelBuilder = new ODataConventionModelBuilder();
+modelBuilder.EntitySet<Document>("Document");
+modelBuilder.EntitySet<Category>("Category");
+modelBuilder.EntitySet<Subject>("Subject");
+builder.Services.AddControllers()
+    .AddOData(options => options
+        .Select()
+        .Filter()
+        .OrderBy()
+        .Expand()
+        .Count()
+        .SetMaxTop(100)
+        .AddRouteComponents("odata", modelBuilder.GetEdmModel()))
+    .ConfigureApiBehaviorOptions(options =>
+    {
+        options.InvalidModelStateResponseFactory = context =>
+        {
 builder.Services.AddJwtAuthSwagger();
 
-builder.Services.AddScoped<IUserSessionValidator, HttpUserSessionValidator>();
+            var firstErrorMessage = context.ModelState.Values
+                .SelectMany(v => v.Errors)
+                .Select(e => e.ErrorMessage)
+                .FirstOrDefault() ?? "Invalid request";
 
 builder.Services.AddScoped(typeof(IBaseRepository<>), typeof(BaseRepository<>));
 builder.Services.AddScoped<ISubjectRepository, SubjectRepository>();
@@ -102,22 +118,47 @@ builder.Services.AddMassTransit(cfg =>
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-var app = builder.Build();
+            var resp = ApiResponse<object>.Fail(firstErrorMessage);
+            return new BadRequestObjectResult(resp);
+        };
+    });
 
-app.MapDefaultEndpoints();
+        builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
+        builder.Services.AddScoped<ICategoryService, CategoryService>();
 
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+        builder.Services.AddJwtAuth(builder.Configuration);
 
-app.UseHttpsRedirection();
 
-app.UseAuthentication();
-app.UseAuthorization();
+        builder.Services.AddHttpClient("AuthService", c =>
+        {
+            var baseUrl = builder.Configuration["AuthService:BaseUrl"];
+            if (!string.IsNullOrWhiteSpace(baseUrl))
+                c.BaseAddress = new Uri(baseUrl);
+        });
 
-app.MapControllers();
 
-app.Run();
+        builder.Services.AddScoped<IUserSessionValidator, HttpUserSessionValidator>();
+
+        builder.Services.AddControllers();
+        builder.Services.AddEndpointsApiExplorer();
+        builder.Services.AddSwaggerGen();
+
+        var app = builder.Build();
+
+        app.MapDefaultEndpoints();
+
+        // Configure the HTTP request pipeline.
+        if (app.Environment.IsDevelopment())
+        {
+            app.UseSwagger();
+            app.UseSwaggerUI();
+        }
+
+        app.UseHttpsRedirection();
+
+        app.UseAuthentication();
+        app.UseAuthorization();
+
+        app.MapControllers();
+
+        app.Run();
