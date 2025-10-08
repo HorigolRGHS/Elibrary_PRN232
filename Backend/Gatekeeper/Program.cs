@@ -35,7 +35,7 @@ app.MapDefaultEndpoints();
 
 app.UseHttpsRedirection();
 
-// Gateway JWT validation middleware: allow /auth/* without token
+
 app.Use(async (context, next) =>
 {
     var path = context.Request.Path.Value ?? string.Empty;
@@ -45,11 +45,9 @@ app.Use(async (context, next) =>
         return;
     }
 
-    if (!context.Request.Headers.TryGetValue("Authorization", out var authHeader))
+    if (!context.Request.Headers.TryGetValue("Authorization", out var authHeader) || string.IsNullOrWhiteSpace(authHeader))
     {
-        context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-        context.Response.ContentType = "application/json";
-        await context.Response.WriteAsJsonAsync(ApiResponse<string>.Fail("Missing Authorization header"));
+        await next();
         return;
     }
 
@@ -79,10 +77,10 @@ app.Use(async (context, next) =>
         };
 
         var principal = tokenHandler.ValidateToken(token, validationParams, out var _);
-        context.User = principal; 
+        context.User = principal; // forward principal to downstream
         await next();
     }
-    catch (Exception ex)
+    catch
     {
         context.Response.StatusCode = StatusCodes.Status401Unauthorized;
         context.Response.ContentType = "application/json";
@@ -100,4 +98,4 @@ app.MapHealthChecks("/healthz");
 
 app.UseOcelot().Wait();
 
-app.Run();
+app.Run();app.Run();

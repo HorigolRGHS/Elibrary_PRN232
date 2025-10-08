@@ -1,4 +1,5 @@
 ﻿using Azure.Storage.Blobs;
+using Azure.Storage.Blobs.Models;
 
 namespace Elib.Storage.Service.Services
 {
@@ -17,30 +18,25 @@ namespace Elib.Storage.Service.Services
 
         public async Task<Stream?> DownloadFileAsync(string fileName)
         {
+            var (s, _, _, _) = await OpenReadWithMetaAsync(fileName);
+            return s;
+        }
+
+        public async Task<(Stream? stream, string? contentType, long? length, string? etag)> OpenReadWithMetaAsync(string fileName)
+        {
             var blobClient = _containerClient.GetBlobClient(fileName);
+            if (!await blobClient.ExistsAsync()) return (null, null, null, null);
 
-            if (!await blobClient.ExistsAsync())
-            {
-                return null;
-            }
+            var props = await blobClient.GetPropertiesAsync();
 
-            var downloadStream = await blobClient.OpenReadAsync();
-            return downloadStream;
+            var stream = await blobClient.OpenReadAsync(new BlobOpenReadOptions(allowModifications: false));
+            return (stream, props.Value.ContentType, props.Value.ContentLength, props.Value.ETag.ToString());
         }
 
         public async Task<(Stream?, string?)> DownloadFileStreamAsync(string fileName)
         {
-            var blobClient = _containerClient.GetBlobClient(fileName);
-            if (!await blobClient.ExistsAsync())
-            {
-                return (null, null);
-            }
-
-            var properties = await blobClient.GetPropertiesAsync();
-            var contentType = properties.Value.ContentType;
-
-            var stream = await blobClient.OpenReadAsync();
-            return (stream, contentType);
+            var (s, ct, _, _) = await OpenReadWithMetaAsync(fileName);
+            return (s, ct);
         }
 
         public async Task<bool> FileExistsAsync(string fileName)
@@ -51,26 +47,45 @@ namespace Elib.Storage.Service.Services
 
         public async Task<string> GetUniqueFileNameAsync(string originalFileName)
         {
-            string fileName = Path.GetFileNameWithoutExtension(originalFileName);
-            string extension = Path.GetExtension(originalFileName);
-            string uniqueFileName = originalFileName;
-            int counter = 1;
-
-            while (await FileExistsAsync(uniqueFileName))
-            {
-                uniqueFileName = $"{fileName}_{Guid.NewGuid().ToString("N").Substring(0, 8)}{extension}";
-                counter++;
-            }
-
-            return uniqueFileName;
+            var name = Path.GetFileNameWithoutExtension(originalFileName);
+            var ext = Path.GetExtension(originalFileName);
+            return $"{name}_{Guid.NewGuid():N}{ext}";
         }
 
         public async Task<string> UploadFileAsync(Stream fileStream, string fileName)
         {
             var blobClient = _containerClient.GetBlobClient(fileName);
-            await blobClient.UploadAsync(fileStream, overwrite: true);
+
+            var headers = new BlobHttpHeaders
+            {
+                ContentType = TryGetContentType(fileName) ?? "application/octet-stream"
+            };
+
+            await blobClient.UploadAsync(fileStream, new BlobUploadOptions
+            {
+                HttpHeaders = headers,
+                TransferOptions = new()
+                {
+                },
+            });
 
             return blobClient.Uri.ToString();
+
+        }
+
+        private static string? TryGetContentType(string fileName)
+        {
+            var ext = Path.GetExtension(fileName).ToLowerInvariant();
+            return ext switch
+            {
+                ".pdf" => "application/pdf",
+                ".png" => "image/png",
+                ".jpg" or ".jpeg" => "image/jpeg",
+                ".gif" => "image/gif",
+                ".txt" => "text/plain",
+                ".json" => "application/json",
+                _ => null
+            };
         }
     }
 }

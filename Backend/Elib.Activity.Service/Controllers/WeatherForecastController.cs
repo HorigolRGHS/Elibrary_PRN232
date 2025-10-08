@@ -19,7 +19,7 @@ namespace Elib.Activity.Service.Controllers
             _logger = logger;
         }
 
-        [Authorize(Roles = "Admin,Customer")]
+
         [HttpGet(Name = "GetWeatherForecast")]
         public IEnumerable<WeatherForecast> Get()
         {

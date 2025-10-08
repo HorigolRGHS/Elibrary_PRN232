@@ -16,6 +16,5 @@ public partial class DownloadHistory
 
     public int? DownloadedBy { get; set; }
 
-    [Required]
     public DateTime DownloadedDate { get; set; }
 }
