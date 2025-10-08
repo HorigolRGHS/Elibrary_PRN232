@@ -11,6 +11,6 @@ namespace SharedLibrary.Auths
         public string Issuer { get; set; } = default!;
         public string Audience { get; set; } = default!;
         public string SecretKey { get; set; } = default!;
-        public int ExpiryMinutes { get; set; } = 60;
+        public int ExpiryDays { get; set; } = 1;
     }
 }
