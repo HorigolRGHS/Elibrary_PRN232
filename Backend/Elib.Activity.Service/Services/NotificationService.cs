@@ -65,7 +65,6 @@ namespace Elib.Activity.Service.Services
         // CREATE
         public async Task<ApiResponse<NotificationDTO>> CreateAsync(NotificationCreateDTO dto)
         {
-     
             var entity = _mapper.Map<Notification>(dto);
 
             var userIdClaim = _httpContextAccessor.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
