@@ -2,7 +2,6 @@
 using Elib.Catalog.Service.Models;
 using Elib.Catalog.Service.Repositories;
 using SharedLibrary.Commons;
-using SharedLibrary.Services;
 using Elib.Catalog.Service.DTOs;
 
 namespace Elib.Catalog.Service.Services

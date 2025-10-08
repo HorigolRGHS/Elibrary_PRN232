@@ -5,7 +5,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OData.Query;
 using Microsoft.EntityFrameworkCore;
 using SharedLibrary.Commons;
-using System.Linq;
 using System.Security.Claims;
 
 namespace Elib.Auth.Service.Controllers
