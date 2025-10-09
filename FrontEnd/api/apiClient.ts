@@ -2,7 +2,7 @@ import axios, { AxiosRequestConfig, AxiosResponse, AxiosError } from "axios";
 
 // Base API client
 const apiClient = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:7000",
+  baseURL: process.env.NEXT_PUBLIC_API_BASE_URL || "https://localhost:7000",
   timeout: 30000,
   withCredentials: true, // Cho phép gửi cookies
   headers: {
@@ -62,8 +62,7 @@ apiClient.interceptors.response.use(
     // Handle common errors
     if (error.response) {
       const status = error.response.status;
-      const message = error.response.data?.message || error.message;
-
+      const message = (error.response.data as { message?: string })?.message || error.message;
       switch (status) {
         case 401:
           // Unauthorized - redirect to login

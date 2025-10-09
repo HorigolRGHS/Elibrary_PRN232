@@ -29,7 +29,19 @@ var jwtSettings = jwtSection.Get<JwtSettings>();
 // Custom middleware-based JWT validation at gateway
 builder.Services.AddSingleton(jwtSettings ?? throw new Exception("Gateway JwtSettings missing"));
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowFrontend",
+        p => p.WithOrigins("http://localhost:3000", "https://localhost:3000")
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials());
+});
+
+
 var app = builder.Build();
+
+app.UseCors("AllowFrontend");
 
 app.MapDefaultEndpoints();
 

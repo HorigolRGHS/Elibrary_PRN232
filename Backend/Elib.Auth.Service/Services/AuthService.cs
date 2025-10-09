@@ -55,13 +55,14 @@ namespace Elib.Auth.Service.Services
                 user.FullName,
                 user.Email,
                 permissions: null,
-                imageUrl: user.ImageUrl
+                imageUrl: user.ImageUrl,
+                rememberMe: dto.RememberMe
             );
 
             var resp = new LoginResponseDTO
             {
                 AccessToken = token,
-                ExpiresAtUtc = DateTime.UtcNow.AddDays(_jwtSettings.ExpiryDays),
+                ExpiresAtUtc = dto.RememberMe ? DateTime.UtcNow.AddDays(_jwtSettings.RememberMeExpiryDays) :  DateTime.UtcNow.AddDays(_jwtSettings.ExpiryDays),
                 User = _mapper.Map<UserInfoDTO>(user),
                 Permissions = Array.Empty<string>()
             };

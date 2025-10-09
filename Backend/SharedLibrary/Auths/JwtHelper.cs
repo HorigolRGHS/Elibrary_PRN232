@@ -14,7 +14,7 @@ namespace SharedLibrary.Auths
             _settings = settings;
         }
 
-        public string GenerateToken(int userId, string role, string fullName, string email, IEnumerable<string>? permissions = null, string? imageUrl = null)
+        public string GenerateToken(int userId, string role, string fullName, string email, IEnumerable<string>? permissions = null, string? imageUrl = null, bool rememberMe = false)
         {
             var claims = new List<Claim>
             {
@@ -46,7 +46,7 @@ namespace SharedLibrary.Auths
                 issuer: _settings.Issuer,
                 audience: _settings.Audience,
                 claims: claims,
-                expires: DateTime.UtcNow.AddDays(_settings.ExpiryDays),
+                expires:  rememberMe ? DateTime.UtcNow.AddDays(_settings.RememberMeExpiryDays) :  DateTime.UtcNow.AddDays(_settings.ExpiryDays),
                 signingCredentials: creds
             );
 

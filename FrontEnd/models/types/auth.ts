@@ -11,3 +11,8 @@ export type User = {
     DeletedDate: string | null;
     DeletedBy: string | null;
 }
+
+export type LoginRequest = {
+    Email: string;
+    Password: string;
+}
