@@ -29,6 +29,17 @@ builder.Services.AddAutoMapper(cfg =>
     cfg.AddMaps(typeof(CategoryProfile).Assembly);
 });
 
+builder.Services.AddScoped(typeof(IBaseRepository<>), typeof(BaseRepository<>));
+builder.Services.AddScoped<ISubjectRepository, SubjectRepository>();
+builder.Services.AddScoped<ISubjectService, SubjectService>();
+builder.Services.AddScoped<IDocumentRepository, DocumentRepository>();
+builder.Services.AddScoped<IDocumentService, DocumentService>();
+builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
+builder.Services.AddScoped<ICategoryService, CategoryService>();
+
+builder.Services.AddJwtAuthSwagger();
+
+
 var modelBuilder = new ODataConventionModelBuilder();
 modelBuilder.EntitySet<Document>("Document");
 modelBuilder.EntitySet<Category>("Category");
@@ -46,54 +57,21 @@ builder.Services.AddControllers()
     {
         options.InvalidModelStateResponseFactory = context =>
         {
-builder.Services.AddJwtAuthSwagger();
-
             var firstErrorMessage = context.ModelState.Values
                 .SelectMany(v => v.Errors)
                 .Select(e => e.ErrorMessage)
                 .FirstOrDefault() ?? "Invalid request";
 
-builder.Services.AddScoped(typeof(IBaseRepository<>), typeof(BaseRepository<>));
-builder.Services.AddScoped<ISubjectRepository, SubjectRepository>();
-builder.Services.AddScoped<ISubjectService, SubjectService>();
-builder.Services.AddScoped<IDocumentRepository, DocumentRepository>();
-builder.Services.AddScoped<IDocumentService, DocumentService>();
+            var resp = ApiResponse<object>.Fail(firstErrorMessage);
+            return new BadRequestObjectResult(resp);
+        };
+    });
 
 builder.Services.AddAutoMapper(cfg =>
 {
     cfg.AddMaps(typeof(SubjectProfiles).Assembly);
     cfg.AddMaps(typeof(DocumentProfile).Assembly);
 });
-
-
-var modelBuilder = new ODataConventionModelBuilder();
-modelBuilder.EntitySet<Document>("Document");
-modelBuilder.EntitySet<Category>("Category");
-modelBuilder.EntitySet<Subject>("Subject");
-builder.Services.AddControllers()
-    .AddOData(options => options
-        .Select()
-        .Filter()
-        .OrderBy()
-        .Expand()
-        .Count()
-        .SetMaxTop(100)
-        .AddRouteComponents("odata", modelBuilder.GetEdmModel()))
-    .ConfigureApiBehaviorOptions(options =>
-    {
-        options.InvalidModelStateResponseFactory = context =>
-        {
-
-            var firstErrorMessage = context.ModelState.Values
-                .SelectMany(v => v.Errors)
-                .Select(e => e.ErrorMessage)
-                .FirstOrDefault() ?? "Invalid request";
-
-
-            var resp = ApiResponse<object>.Fail(firstErrorMessage);
-            return new BadRequestObjectResult(resp);
-        };
-    });
 
 builder.Services.AddMassTransit(cfg =>
 {
@@ -118,47 +96,39 @@ builder.Services.AddMassTransit(cfg =>
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-            var resp = ApiResponse<object>.Fail(firstErrorMessage);
-            return new BadRequestObjectResult(resp);
-        };
-    });
-
-        builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
-        builder.Services.AddScoped<ICategoryService, CategoryService>();
-
-        builder.Services.AddJwtAuth(builder.Configuration);
+builder.Services.AddJwtAuth(builder.Configuration);
 
 
-        builder.Services.AddHttpClient("AuthService", c =>
-        {
-            var baseUrl = builder.Configuration["AuthService:BaseUrl"];
-            if (!string.IsNullOrWhiteSpace(baseUrl))
-                c.BaseAddress = new Uri(baseUrl);
-        });
+builder.Services.AddHttpClient("AuthService", c =>
+{
+    var baseUrl = builder.Configuration["AuthService:BaseUrl"];
+    if (!string.IsNullOrWhiteSpace(baseUrl))
+        c.BaseAddress = new Uri(baseUrl);
+});
 
 
-        builder.Services.AddScoped<IUserSessionValidator, HttpUserSessionValidator>();
+builder.Services.AddScoped<IUserSessionValidator, HttpUserSessionValidator>();
 
-        builder.Services.AddControllers();
-        builder.Services.AddEndpointsApiExplorer();
-        builder.Services.AddSwaggerGen();
+builder.Services.AddControllers();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
 
-        var app = builder.Build();
+var app = builder.Build();
 
-        app.MapDefaultEndpoints();
+app.MapDefaultEndpoints();
 
-        // Configure the HTTP request pipeline.
-        if (app.Environment.IsDevelopment())
-        {
-            app.UseSwagger();
-            app.UseSwaggerUI();
-        }
+// Configure the HTTP request pipeline.
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
 
-        app.UseHttpsRedirection();
+app.UseHttpsRedirection();
 
-        app.UseAuthentication();
-        app.UseAuthorization();
+app.UseAuthentication();
+app.UseAuthorization();
 
-        app.MapControllers();
+app.MapControllers();
 
-        app.Run();
+app.Run();
