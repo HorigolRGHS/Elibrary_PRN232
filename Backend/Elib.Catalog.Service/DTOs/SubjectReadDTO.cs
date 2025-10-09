@@ -10,6 +10,6 @@ namespace Elib.Catalog.Service.DTOs
         public string? Description { get; set; }
         public DateTime CreatedDate { get; set; }
         public DateTime? UpdatedDate { get; set; }
-        public ICollection<DocumentReadDTO> Documents { get; set; } = new List<DocumentReadDTO>();
+        public ICollection<DocumentInSubjectDTO> Documents { get; set; } = new List<DocumentInSubjectDTO>();
     }
 }
