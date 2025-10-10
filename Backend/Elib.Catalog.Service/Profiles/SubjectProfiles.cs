@@ -23,7 +23,7 @@ namespace Elib.Catalog.Service.Profiles
                 .ForMember(dest => dest.UpdatedDate, opt => opt.MapFrom(src => DateTime.UtcNow))
                 .ForMember(dest => dest.Documents, opt => opt.Ignore());
 
-            CreateMap<Document, DocumentReadDTO>();
+            CreateMap<Document, DocumentInSubjectDTO>();
         }
     }
 }
