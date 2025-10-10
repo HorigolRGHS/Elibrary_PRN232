@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { login } from "@/services/Auth/authService";
 import type { LoginRequestDTO } from "@/models/dtos/authDTO";
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 import {
   Card,
@@ -24,7 +26,6 @@ export default function LoginIndex() {
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -38,13 +39,19 @@ export default function LoginIndex() {
     const payload: LoginRequestDTO = { email, password, rememberMe };
     try {
       await login(payload);
+      toast.success("Login successful", {
+        toastId: "login-success",
+      });
       router.push("/");
     } catch (err: any) {
-      setError(
+      const msg =
         err?.response?.data?.message ||
-          err?.message ||
-          "Login failed. Please try again."
-      );
+        err?.message ||
+        "Login failed. Please try again.";
+      setError(msg);
+      toast.error(msg, {
+        toastId: "login-error",
+      });
     } finally {
       setLoading(false);
     }
