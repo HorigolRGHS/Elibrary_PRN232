@@ -4,6 +4,8 @@ using Elib.Interaction.Service.DTOs;
 using Elib.Interaction.Service.Models;
 using Elib.Interaction.Service.Repositories;
 using SharedLibrary.Commons;
+using MassTransit;
+using SharedLibrary.Messages;
 
 namespace Elib.Interaction.Service.Services
 {
@@ -12,12 +14,14 @@ namespace Elib.Interaction.Service.Services
         private readonly IReportRepository _repository;
         private readonly IMapper _mapper;
         private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly IPublishEndpoint _publishEndpoint;
 
-        public ReportService(IReportRepository repository, IMapper mapper, IHttpContextAccessor httpContextAccessor)
+        public ReportService(IReportRepository repository, IMapper mapper, IHttpContextAccessor httpContextAccessor, IPublishEndpoint publishEndpoint)
         {
             _repository = repository;
             _mapper = mapper;
             _httpContextAccessor = httpContextAccessor;
+            _publishEndpoint = publishEndpoint;
         }
 
         // ===============================================
@@ -84,7 +88,7 @@ namespace Elib.Interaction.Service.Services
         }
 
         // ===============================================
-        // UPDATE (UC10.3 - Feedback / Resolve Report)
+        // UPDATE (UC10.3 - Resolve Report)
         public async Task<ApiResponse<ReportDTO>> UpdateAsync(ReportUpdateDTO dto)
         {
             var entity = await _repository.GetByIdAsync(dto.ReportId);
@@ -97,9 +101,27 @@ namespace Elib.Interaction.Service.Services
             await _repository.UpdateAsync(entity);
             await _repository.SaveChangesAsync();
 
+            // resolved → publish event
+            if (dto.Status == "Resolved")
+            {
+                var userIdClaim = _httpContextAccessor.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+                int.TryParse(userIdClaim?.Value, out var resolvedBy);
+
+                var message = new ReportResolved(
+                    entity.ReportId,
+                    resolvedBy,
+                    entity.Reason.Length > 80 ? entity.Reason[..80] + "..." : entity.Reason,
+                    DateTime.UtcNow
+                );
+
+                Console.WriteLine($"[ReportService] 📨 Publishing ReportResolved event for ReportId={message.ReportId}");
+                await _publishEndpoint.Publish(message);
+            }
+
             var result = _mapper.Map<ReportDTO>(entity);
             return ApiResponse<ReportDTO>.Ok(result, "Report updated successfully.");
         }
+
 
         // ===============================================
         // DELETE

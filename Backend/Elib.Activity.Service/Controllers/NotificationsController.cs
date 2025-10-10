@@ -28,7 +28,7 @@ namespace Elib.Activity.Service.Controllers
 
         // GET: api/Notifications/odata?$filter=Type eq 'System'&$orderby=CreatedDate desc&$top=5&$skip=0&$count=true
         [HttpGet("odata")]
-        [EnableQuery] // Bật filter/sort/paging/select từ client
+        [EnableQuery] 
         [Authorize(Roles = "Admin,Customer")]
         public IActionResult GetNotificationsOData()
         {
@@ -105,5 +105,43 @@ namespace Elib.Activity.Service.Controllers
         //{
         //    return _context.Notifications.Any(e => e.NotificationId == id);
         //}
+
+        [HttpGet("{id}/view-status")]
+        [Authorize(Roles = "Admin,Customer")]
+        public async Task<ActionResult<ApiResponse<bool>>> CheckUserViewed(int id)
+        {
+            var result = await _notificationService.CheckUserViewedAsync(id);
+            return Ok(result);
+        }
+
+        [HttpPost("{id}/view")]
+        [Authorize(Roles = "Admin,Customer")]
+        public async Task<ActionResult<ApiResponse<bool>>> MarkAsViewed(int id)
+        {
+            var result = await _notificationService.MarkAsViewedAsync(id);
+            return Ok(result);
+        }
+
+        /// api/Notifications/odata/my?$filter=Status eq 'Sent'&$orderby=CreatedDate desc&$top=10&$skip=0&$count=true
+
+        [HttpGet("odata/me")]
+        [EnableQuery]
+        [Authorize(Roles = "Admin,Customer")]
+        public IActionResult GetMyNotificationsOData()
+        {
+            var query = _notificationService.AsQueryableForCurrentUser();
+            return Ok(query);
+        }
+
+        [HttpPost("custom")]
+        [Authorize(Roles = "Admin")]
+        public async Task<ActionResult<ApiResponse<NotificationDTO>>> CreateCustom([FromBody] NotificationCreateCustomDTO dto)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ApiResponse<NotificationDTO>.Fail("Invalid data."));
+
+            var result = await _notificationService.CreateCustomAsync(dto);
+            return Ok(result);
+        }
     }
 }

@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.OData;
 using Microsoft.EntityFrameworkCore;
 using SharedLibrary.Auths;
 using SharedLibrary.Commons;
+using MassTransit;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -35,6 +36,23 @@ builder.Services.AddControllers()
             return new BadRequestObjectResult(resp);
         };
     });
+
+builder.Services.AddMassTransit(cfg =>
+{
+    cfg.SetKebabCaseEndpointNameFormatter();
+
+    cfg.UsingRabbitMq((context, bus) =>
+    {
+        var mq = builder.Configuration.GetSection("RabbitMQ");
+        bus.Host(mq["Host"], mq["VirtualHost"], h =>
+        {
+            h.Username(mq["Username"]);
+            h.Password(mq["Password"]);
+        });
+
+        bus.PrefetchCount = ushort.TryParse(mq["Prefetch"], out var prefetch) ? prefetch : (ushort)16;
+    });
+});
 
 
 builder.Services.AddEndpointsApiExplorer();

@@ -9,8 +9,13 @@ namespace Elib.Activity.Service.Services
         Task<ApiResponse<PagedResult<NotificationDTO>>> GetPagedAsync(NotificationFilterDTO filter);
 
         IQueryable<NotificationDTO> AsQueryable();
-
+        IQueryable<NotificationDTO> AsQueryableForCurrentUser();
         Task<ApiResponse<NotificationDTO>> CreateAsync(NotificationCreateDTO dto);
         Task<ApiResponse<NotificationDTO>> UpdateAsync(NotificationUpdateDTO dto);
+
+        Task<ApiResponse<NotificationDTO>> CreateCustomAsync(NotificationCreateCustomDTO dto);
+        Task<ApiResponse<bool>> CheckUserViewedAsync(int notificationId);
+
+        Task<ApiResponse<bool>> MarkAsViewedAsync(int notificationId);
     }
 }
