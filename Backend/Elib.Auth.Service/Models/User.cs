@@ -18,7 +18,7 @@ public partial class User
 
     public string PasswordHash { get; set; } = null!;
 
-    public string? ImageUrl { get; set; }
+    public string? ImageUrl { get; set; } = "https://ik.imagekit.io/i0aiv29ol/Avt%202%20(1).png?updatedAt=1760118073397";
 
     public UserRole Role { get; set; } = UserRole.Customer;
 

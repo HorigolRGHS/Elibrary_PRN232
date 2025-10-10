@@ -1,11 +1,11 @@
 import SimpleHeader from "@/components/layout/header";
-import LoginIndex from ".";
+import RegisterIndex from ".";
 
-export default function LoginPage() {
+export default function RegisterPage() {
   return (
     <>
       <SimpleHeader />
-      <LoginIndex />
+      <RegisterIndex />
     </>
   );
 }

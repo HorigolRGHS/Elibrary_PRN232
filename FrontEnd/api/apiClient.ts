@@ -65,13 +65,21 @@ apiClient.interceptors.response.use(
       const message = (error.response.data as { message?: string })?.message || error.message;
       switch (status) {
         case 401:
-          // Unauthorized - redirect to login
+          
           if (typeof window !== 'undefined') {
-            localStorage.removeItem('token');
-            window.location.href = '/login';
+             const currentPath = window.location.pathname;
+            if (currentPath !== '/login') {
+              localStorage.removeItem('token');
+              window.location.href = '/login';
+            } else {
+              console.warn('⚠️ Already on login page, skip redirect.');
+            }
           }
           break;
         case 403:
+          if (typeof window !== 'undefined') {
+              window.location.href = '/';
+          }
           console.error('❌ Forbidden:', message);
           break;
         case 404:
