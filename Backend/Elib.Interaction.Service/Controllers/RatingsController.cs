@@ -1,7 +1,7 @@
-﻿using Elib.Catalog.Service.Data;
-using Elib.Catalog.Service.DTOs;
-using Elib.Catalog.Service.Models;
-using Elib.Catalog.Service.Services;
+﻿using Elib.Interaction.Service.Data;
+using Elib.Interaction.Service.DTOs;
+using Elib.Interaction.Service.Models;
+using Elib.Interaction.Service.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
@@ -13,24 +13,22 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-
-namespace Elib.Catalog.Service.Controllers
+namespace Elib.Interaction.Service.Controllers
 {
     [Route("[controller]")]
     [ApiController]
-    public class CategoriesController : ODataController
+    public class RatingsController : ODataController
     {
-        private readonly ICategoryService _service;
+        private readonly IRatingService _service;
+        public RatingsController(IRatingService service) => _service = service;
 
-        public CategoriesController(ICategoryService service) => _service = service;
-
-        // GET /Categories?$filter=contains(CategoryName,'prog')&$select=CategoryId,CategoryName&$orderby=CreatedDate desc&$top=10&$count=true
+        // GET /Ratings?$filter=DocumentId eq 42&$orderby=CreatedDate desc&$count=true
         [EnableQuery(PageSize = 50)]
         [AllowAnonymous]
         [HttpGet]
-        public IQueryable<CategoryReadDTO> Get() => _service.QueryDto();
+        public IQueryable<RatingReadDTO> Get() => _service.QueryDto();
 
-        // GET api/Categories/5
+        // GET /Ratings(5)
         [EnableQuery]
         [AllowAnonymous]
         [HttpGet("({key})")]
@@ -40,28 +38,28 @@ namespace Elib.Catalog.Service.Controllers
             return dto is null ? NotFound() : Ok(dto);
         }
 
-        // POST api/Categories
-        [Authorize(Roles = "Admin")]
+        // POST /Ratings
+        [Authorize(Roles = "Customer")]
         [HttpPost]
-        public async Task<IActionResult> Post([FromBody] CategoryCreateDTO dto)
+        public async Task<IActionResult> Post([FromBody] RatingCreateDTO dto)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
             var created = await _service.CreateAsync(dto);
             return Created(created);
         }
 
-        // PUT api/Categories/5
-        [Authorize(Roles = "Admin")]
+        // PUT /Ratings(5)
+        [Authorize(Roles = "Customer")]
         [HttpPut("({key})")]
-        public async Task<IActionResult> Put([FromRoute] int key, [FromBody] CategoryUpdateDTO dto)
+        public async Task<IActionResult> Put([FromRoute] int key, [FromBody] RatingUpdateDTO dto)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
             var ok = await _service.UpdateAsync(key, dto);
             return ok ? NoContent() : NotFound();
         }
 
-        // DELETE api/Categories/5
-        [Authorize(Roles = "Admin")]
+        // DELETE /Ratings(5)
+        [Authorize(Roles = "Customer")]
         [HttpDelete("({key})")]
         public async Task<IActionResult> Delete([FromRoute] int key)
         {

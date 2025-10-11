@@ -1,3 +1,4 @@
+﻿using Elib.Interaction.Service.Data;
 using Elib.Interaction.Service.Models;
 using Elib.Interaction.Service.Repositories;
 using Elib.Interaction.Service.Services;
@@ -5,38 +6,37 @@ using Elib.Interaction.Service.Profiles;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OData;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.OData.ModelBuilder;
 using SharedLibrary.Auths;
 using SharedLibrary.Commons;
 using MassTransit;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.AddServiceDefaults();
+
+// Database
+builder.Services.AddDbContext<InteractionDb>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")
+        ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.")));
+
+builder.Services.AddScoped<DbContext, InteractionDb>();
+builder.Services.AddHttpContextAccessor();
 
 
-builder.Services.AddControllers()
-    .AddOData(options => options
-        .Select()
-        .Filter()
-        .OrderBy()
-        .Expand()
-        .Count()
-        .SetMaxTop(100)
-    )
-    .ConfigureApiBehaviorOptions(options =>
-    {
-        options.InvalidModelStateResponseFactory = context =>
-        {
-            var firstErrorMessage = context.ModelState.Values
-                .SelectMany(v => v.Errors)
-                .Select(e => e.ErrorMessage)
-                .FirstOrDefault() ?? "Invalid request";
+// JWT / Auth
+builder.Services.AddJwtAuth(builder.Configuration);
 
-            var resp = ApiResponse<object>.Fail(firstErrorMessage);
-            return new BadRequestObjectResult(resp);
-        };
-    });
+builder.Services.AddHttpClient("AuthService", c =>
+{
+    var baseUrl = builder.Configuration["AuthService:BaseUrl"];
+    if (!string.IsNullOrWhiteSpace(baseUrl))
+        c.BaseAddress = new Uri(baseUrl);
+});
 
+builder.Services.AddScoped<IUserSessionValidator, HttpUserSessionValidator>();
+
+
+//  RabbitMQ
 builder.Services.AddMassTransit(cfg =>
 {
     cfg.SetKebabCaseEndpointNameFormatter();
@@ -55,47 +55,57 @@ builder.Services.AddMassTransit(cfg =>
 });
 
 
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-
-
-builder.Services.AddDbContext<InteractionDb>(optionsAction =>
+// AutoMapper Profiles
+builder.Services.AddAutoMapper(cfg =>
 {
-    optionsAction.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
+    cfg.AddMaps(typeof(ReportProfile).Assembly);
+    cfg.AddMaps(typeof(RatingProfile).Assembly);
 });
 
-
-builder.Services.AddScoped<DbContext, InteractionDb>();
-builder.Services.AddHttpContextAccessor();
-
-
-builder.Services.AddJwtAuth(builder.Configuration);
-
-
-builder.Services.AddHttpClient("AuthService", c =>
-{
-    var baseUrl = builder.Configuration["AuthService:BaseUrl"];
-    if (!string.IsNullOrWhiteSpace(baseUrl))
-        c.BaseAddress = new Uri(baseUrl);
-});
-
-builder.Services.AddScoped<IUserSessionValidator, HttpUserSessionValidator>();
-
+// Repositories & Services
 
 builder.Services.AddScoped<IReportRepository, ReportRepository>();
 builder.Services.AddScoped<IReportService, ReportService>();
 
-// Activity (Notification) 
-//builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
+builder.Services.AddScoped<IRatingRepository, RatingRepository>();
+builder.Services.AddScoped<IRatingService, RatingService>();
 
 
-// =============================================
-builder.Services.AddAutoMapper(cfg =>
-{
-    cfg.AddMaps(typeof(ReportProfile).Assembly);
-});
+// OData Configuration
+var modelBuilder = new ODataConventionModelBuilder();
+modelBuilder.EntitySet<Comment>("Comment");
+modelBuilder.EntitySet<Report>("Report");
+modelBuilder.EntitySet<Rating>("Rating");
 
-// =============================================
+builder.Services.AddControllers()
+    .AddOData(options => options
+        .Select()
+        .Filter()
+        .OrderBy()
+        .Expand()
+        .Count()
+        .SetMaxTop(100)
+        .AddRouteComponents("odata", modelBuilder.GetEdmModel()))
+    .ConfigureApiBehaviorOptions(options =>
+    {
+        options.InvalidModelStateResponseFactory = context =>
+        {
+            var firstErrorMessage = context.ModelState.Values
+                .SelectMany(v => v.Errors)
+                .Select(e => e.ErrorMessage)
+                .FirstOrDefault() ?? "Invalid request";
+
+            var resp = ApiResponse<object>.Fail(firstErrorMessage);
+            return new BadRequestObjectResult(resp);
+        };
+    });
+
+
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
+
+builder.AddServiceDefaults();
 
 var app = builder.Build();
 
