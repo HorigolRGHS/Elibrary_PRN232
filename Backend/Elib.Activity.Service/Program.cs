@@ -93,6 +93,7 @@ builder.Services.AddMassTransit(cfg =>
  
     cfg.AddConsumer<ReportResolvedConsumer>();
     cfg.AddConsumer<DocumentDownloadedConsumer>();
+    cfg.AddConsumer<TopDownloadsRequestConsumer>();
 
 
     cfg.AddRequestClient<GetDocumentSummary>(new Uri("queue:catalog.get-document-summary"));
@@ -132,6 +133,13 @@ builder.Services.AddMassTransit(cfg =>
             e.ConcurrentMessageLimit = 8;
             e.UseMessageRetry(r => r.Interval(3, TimeSpan.FromSeconds(5)));
 
+        });
+
+        // ======================
+        // TopDownload
+        bus.ReceiveEndpoint("activity.top-downloads", e =>
+        {
+            e.ConfigureConsumer<TopDownloadsRequestConsumer>(context);
         });
 
     });
