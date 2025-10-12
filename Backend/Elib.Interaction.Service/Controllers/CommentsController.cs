@@ -17,7 +17,7 @@ namespace Elib.Interaction.Service.Controllers
             _commentService = commentService;
         }
 
-        // ✅ GET: api/comments/5
+        // GET: api/comments/5
         [HttpGet("{documentId:int}")]
         public async Task<IActionResult> GetByDocumentId(int documentId)
         {
@@ -28,7 +28,7 @@ namespace Elib.Interaction.Service.Controllers
             return Ok(response);
         }
 
-        // ✅ GET: api/comments/detail/5
+        // GET: api/comments/detail/5
         [HttpGet("detail/{id:int}")]
         public async Task<IActionResult> GetById(int id)
         {
@@ -39,7 +39,7 @@ namespace Elib.Interaction.Service.Controllers
             return Ok(response);
         }
 
-        // ✅ POST: api/comments
+        // POST: api/comments
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] CommentCreateDTO dto)
         {
@@ -50,7 +50,7 @@ namespace Elib.Interaction.Service.Controllers
             return Ok(response);
         }
 
-        // ✅ PUT: api/comments/5
+        // PUT: api/comments/5
         [HttpPut("{id:int}")]
         public async Task<IActionResult> Update(int id, [FromBody] CommentUpdateDTO dto)
         {
@@ -65,7 +65,7 @@ namespace Elib.Interaction.Service.Controllers
         }
 
 
-        // ✅ DELETE: api/comments/5
+        // DELETE: api/comments/5
         [HttpDelete("{id:int}")]
         public async Task<IActionResult> Delete(int id)
         {
