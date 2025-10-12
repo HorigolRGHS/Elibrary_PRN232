@@ -67,6 +67,7 @@ builder.Services.AddAutoMapper(cfg =>
 {
     cfg.AddMaps(typeof(ReportProfile).Assembly);
     cfg.AddMaps(typeof(RatingProfile).Assembly);
+    cfg.AddMaps(typeof(CommentProfile).Assembly);
 });
 
 // Repositories & Services
@@ -79,6 +80,9 @@ builder.Services.AddScoped<IRatingService, RatingService>();
 
 builder.Services.AddScoped<IStatisticRepository, StatisticRepository>();
 builder.Services.AddScoped<IStatisticService, StatisticService>();
+
+builder.Services.AddScoped<ICommentRepository, CommentRepository>();
+builder.Services.AddScoped<ICommentService, CommentService>();
 
 // OData Configuration
 var modelBuilder = new ODataConventionModelBuilder();
