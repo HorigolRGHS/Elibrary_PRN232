@@ -38,7 +38,6 @@ namespace Elib.Activity.Service.Services
                     var nowVN = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, _vietnamZone);
 
 
-                   
                     var dueNotifications = await db.Set<Notification>()
                         .Where(n => n.Status == "Pending" && n.ScheduledDate <= nowVN)
                         .ToListAsync(stoppingToken);
