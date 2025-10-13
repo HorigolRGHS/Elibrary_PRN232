@@ -8,7 +8,7 @@ namespace Elib.Storage.Service.Services
         private readonly string _apiKey;
         public ImgBBService(IConfiguration configuration)
         {
-            _apiKey = configuration[key: "ImgBBApiKey"]; // Lấy API key từ file cấu hình appsetting.json 
+            _apiKey = configuration[key: "ImgBBApiKey"]!; // Lấy API key từ file cấu hình appsetting.json 
         }
 
         public async Task<string> UploadImageAsync(IFormFile file)

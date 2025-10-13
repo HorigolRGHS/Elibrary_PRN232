@@ -1,9 +1,15 @@
-﻿using Elib.Auth.Service.Models;
-using Microsoft.EntityFrameworkCore;
-using SharedLibrary.Commons;
+﻿using Elib.Auth.Service.DTOs.Admin;
+using Elib.Auth.Service.Models;
+using Elib.Auth.Service.Profiles;
 using Elib.Auth.Service.Repositories;
 using Elib.Auth.Service.Services;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.OData;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.OData.Edm;
+using Microsoft.OData.ModelBuilder;
 using SharedLibrary.Auths;
+using SharedLibrary.Commons;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -24,7 +30,40 @@ builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserSessionValidator, LocalUserSessionValidator>();
 
-builder.Services.AddControllers();
+// Email
+builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("MailSettings"));
+builder.Services.AddTransient<IEmailService, EmailService>();
+
+
+builder.Services.AddAutoMapper(cfg =>
+{
+    cfg.AddMaps(typeof(UserProfile).Assembly);
+});
+
+// OData
+builder.Services.AddControllers()
+    .AddOData(opt =>
+    {
+        opt.Select().Filter().OrderBy().Count().SetMaxTop(100).Expand()
+            .AddRouteComponents("api", GetEdmModel());
+    });
+
+
+// ModelState -> ApiResponse
+builder.Services.Configure<ApiBehaviorOptions>(options =>
+{
+    options.InvalidModelStateResponseFactory = context =>
+    {
+        var firstErrorMessage = context.ModelState.Values
+            .SelectMany(v => v.Errors)
+            .Select(e => e.ErrorMessage)
+            .FirstOrDefault() ?? "Invalid request";
+
+        var resp = ApiResponse<object>.Fail(firstErrorMessage);
+        return new BadRequestObjectResult(resp);
+    };
+});
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -50,3 +89,11 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+
+IEdmModel GetEdmModel()
+{
+    var odataBuilder = new ODataConventionModelBuilder();
+    odataBuilder.EntitySet<UserListItemDTO>("Users"); 
+    return odataBuilder.GetEdmModel();
+}

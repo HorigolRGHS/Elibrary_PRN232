@@ -22,9 +22,9 @@ public partial class User
 
     public UserRole Role { get; set; } = UserRole.Customer;
 
-    public bool Active { get; set; }
+    public bool Active { get; set; } = false;
 
-    public DateTime CreatedDate { get; set; }
+    public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
 
     public DateTime? UpdatedDate { get; set; }
 
