@@ -10,6 +10,8 @@ using Microsoft.OData.Edm;
 using Microsoft.OData.ModelBuilder;
 using SharedLibrary.Auths;
 using SharedLibrary.Commons;
+using MassTransit;
+using Elib.Auth.Service.Consumers;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -64,6 +66,32 @@ builder.Services.Configure<ApiBehaviorOptions>(options =>
     };
 });
 
+//Rabbimq
+
+builder.Services.AddMassTransit(x =>
+{
+    x.SetKebabCaseEndpointNameFormatter();
+
+
+    x.AddConsumer<UserCountersRequestConsumer>();
+
+    x.UsingRabbitMq((context, cfg) =>
+    {
+        var mq = builder.Configuration.GetSection("RabbitMQ");
+        cfg.Host(mq["Host"], mq["VirtualHost"] ?? "/", h =>
+        {
+            h.Username(mq["Username"]);
+            h.Password(mq["Password"]);
+        });
+
+
+        if (ushort.TryParse(mq["Prefetch"], out var prefetch) && prefetch > 0)
+            cfg.PrefetchCount = prefetch;
+
+
+        cfg.ConfigureEndpoints(context);
+    });
+});
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();

@@ -79,6 +79,7 @@ CREATE TABLE catalog_svc.Document (
     CreatedDate DATETIME NOT NULL DEFAULT GETDATE(),
     UpdatedDate DATETIME,
     DeletedDate DATETIME,
+    DeletedBy INT NULL,
     CreatedBy INT NOT NULL,
     FOREIGN KEY (CategoryID) REFERENCES catalog_svc.Category(CategoryID) ON DELETE CASCADE,
     FOREIGN KEY (SubjectID) REFERENCES catalog_svc.[Subject](SubjectID) ON DELETE CASCADE
@@ -285,23 +286,3 @@ VALUES
 ('Promotional Event', 'Join our summer sale event this weekend!', 1, '2025-06-05 14:00:00', '2025-06-06 12:00:00', 'Customer', 'Sent'),
 ('Account Update', 'Please verify your email address.', 1, '2025-06-06 11:00:00', '2025-06-07 09:00:00', 'Custom', 'Pending');
 
-
-/* ==============================
-   Bảng AuditLog trong Activity Service
-   ============================== */
-CREATE TABLE activity_svc.AuditLog (
-    AuditID BIGINT PRIMARY KEY IDENTITY(1,1),
-    ServiceName NVARCHAR(100) NOT NULL,    
-    TableName NVARCHAR(100) NOT NULL,         
-    Action NVARCHAR(20) NOT NULL              
-        CHECK (Action IN ('INSERT','UPDATE','DELETE')),
-    RecordID NVARCHAR(100) NOT NULL,          
-    PerformedBy INT NULL,                     
-    PerformedAt DATETIME NOT NULL DEFAULT GETDATE(), 
-    OldValues NVARCHAR(MAX) NULL,             
-    NewValues NVARCHAR(MAX) NULL
-);
-
-CREATE INDEX IX_AuditLog_ServiceName ON activity_svc.AuditLog(ServiceName);
-CREATE INDEX IX_AuditLog_TableName ON activity_svc.AuditLog(TableName);
-CREATE INDEX IX_AuditLog_PerformedAt ON activity_svc.AuditLog(PerformedAt);
