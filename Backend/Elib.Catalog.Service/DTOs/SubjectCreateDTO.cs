@@ -10,7 +10,6 @@ namespace Elib.Catalog.Service.DTOs
 
         [Required(ErrorMessage = "ImageURL is required")]
         [StringLength(500, ErrorMessage = "ImageURL cannot exceed 500 characters")]
-        [Url(ErrorMessage = "Invalid Image URL format")]
         public string ImageUrl { get; set; } = null!;
 
         [StringLength(500, ErrorMessage = "Description cannot exceed 500 characters")]

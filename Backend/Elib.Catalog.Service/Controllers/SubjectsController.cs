@@ -20,7 +20,7 @@ namespace Elib.Catalog.Service.Controllers
         }
 
         // GET: api/Subjects
-        [Authorize(Roles = "Admin,Customer")]
+        [AllowAnonymous]
         [HttpGet]
         public async Task<ActionResult<IEnumerable<SubjectReadDTO>>> GetSubjects()
         {
@@ -33,7 +33,7 @@ namespace Elib.Catalog.Service.Controllers
         }
 
         // GET: api/Subjects/5
-        [Authorize(Roles = "Admin,Customer")]
+        [AllowAnonymous]
         [HttpGet("{id}")]
         public async Task<ActionResult<SubjectReadDTO>> GetSubject(int id)
         {
