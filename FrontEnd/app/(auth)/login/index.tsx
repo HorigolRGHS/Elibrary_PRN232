@@ -70,6 +70,7 @@ export default function LoginIndex() {
         <div className="hidden md:flex md:w-1/3 items-center justify-center bg-gradient-to-br">
           <div className="text-center space-y-4">
             <Image
+              onClick={() => router.push("/")}
               src="https://ik.imagekit.io/i0aiv29ol/EMC%20Library.png?updatedAt=1760115301250"
               alt="E-Library Logo"
               width={240}

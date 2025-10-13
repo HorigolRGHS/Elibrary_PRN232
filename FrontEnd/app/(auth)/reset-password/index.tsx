@@ -88,6 +88,7 @@ export default function ResetPasswordIndex() {
         <div className="hidden md:flex md:w-1/2 items-center justify-center">
           <div className="text-center space-y-4">
             <Image
+              onClick={() => router.push("/")}
               src="https://ik.imagekit.io/i0aiv29ol/unnamed%20(1).png?updatedAt=1760128944505"
               alt="Reset Password Logo"
               width={260}

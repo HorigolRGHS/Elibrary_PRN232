@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
@@ -18,6 +19,7 @@ import { forgotPassword } from "@/services/Auth/authService";
 import Image from "next/image";
 
 export default function ForgotPasswordIndex() {
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [isSent, setIsSent] = useState(false);
@@ -65,6 +67,7 @@ export default function ForgotPasswordIndex() {
         <div className="hidden md:flex md:w-1/2 items-center justify-center">
           <div className="text-center space-y-4">
             <Image
+              onClick={() => router.push("/")}
               src="https://ik.imagekit.io/i0aiv29ol/Delphinapterus_leucas_Steve-snodgrass-CC2-Att-Gen.png?updatedAt=1760128291941"
               alt="Forgot Password Logo"
               width={260}

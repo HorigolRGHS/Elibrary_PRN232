@@ -17,9 +17,9 @@ export async function login(payload: LoginRequestDTO): Promise<ResponseDTO<Login
     if (token) {
       try {
         setAuthToken(token);
-        console.debug('[authService] token saved to localStorage');
+        console.debug('[authService] token saved to cookie');
       } catch (e) {
-        console.warn('[authService] failed to save token to localStorage', e);
+        console.warn('[authService] failed to save token to cookie', e);
       }
     } else {
       console.warn('[authService] login data did not contain an access token', data);

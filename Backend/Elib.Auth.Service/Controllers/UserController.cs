@@ -1,4 +1,6 @@
-﻿using Elib.Auth.Service.DTOs.Admin;
+﻿using Elib.Auth.Service.DTOs;
+using Elib.Auth.Service.DTOs.Admin;
+using Elib.Auth.Service.Models;
 using Elib.Auth.Service.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -94,6 +96,22 @@ namespace Elib.Auth.Service.Controllers
         public async Task<ActionResult<ApiResponse<bool>>> DeleteUser(int userId)
         {
             var result = await _userService.DeleteUserAsync(userId);
+            if (!result.Success) return NotFound(result);
+            return Ok(result);
+        }
+
+        [HttpGet("{id}")]
+        public async Task<ActionResult<ApiResponse<User>>> GetById(int userId)
+        {
+            var result = await _userService.GetByIdAsync(userId);
+            if (!result.Success) return NotFound(result);
+            return Ok(result);
+        }
+
+        [HttpGet("{email}")]
+        public async Task<ActionResult<ApiResponse<User>>> GetByEmai(string email)
+        {
+            var result = await _userService.GetByEmailAsync(email);
             if (!result.Success) return NotFound(result);
             return Ok(result);
         }

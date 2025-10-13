@@ -1,10 +1,8 @@
-import SimpleHeader from "@/components/layout/header";
 import LoginIndex from ".";
 
 export default function LoginPage() {
   return (
     <>
-      <SimpleHeader />
       <LoginIndex />
     </>
   );

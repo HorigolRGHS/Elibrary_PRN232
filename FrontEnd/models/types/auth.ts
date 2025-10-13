@@ -12,7 +12,15 @@ export type User = {
     DeletedBy: string | null;
 }
 
-export type LoginRequest = {
-    Email: string;
-    Password: string;
-}
+export type JwtPayload = {
+  sub?: string;
+  name?: string; 
+  email?: string;
+  role?: string;
+  image_url?: string; 
+  exp?: number;
+  iss?: string;
+  aud?: string;
+  raw?: Record<string, any>;
+  [k: string]: any;
+};

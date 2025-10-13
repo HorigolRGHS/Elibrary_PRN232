@@ -55,5 +55,11 @@ namespace Elib.Auth.Service.Services
             await _userRepo.DeleteAsync(user);
             return ApiResponse<string>.Ok(null, "Delete user successfully");
         }
+
+        public async Task<ApiResponse<User>> GetByIdAsync(int userId)
+        {
+            var user = await _userRepo.GetByIdAsync(userId);
+            return user == null ? ApiResponse<User>.Fail("Not found") : ApiResponse<User>.Ok(user);
+        }
     }
 }

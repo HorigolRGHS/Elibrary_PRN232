@@ -21,8 +21,8 @@ apiClient.interceptors.request.use(
       config.headers["Content-Type"] = "application/json";
     }
 
-    // Thêm authorization token nếu có
-    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    // Thêm authorization token nếu có (đọc từ cookie trên client)
+    const token = typeof window !== 'undefined' ? getAuthToken() : null;
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -65,14 +65,27 @@ apiClient.interceptors.response.use(
       const message = (error.response.data as { message?: string })?.message || error.message;
       switch (status) {
         case 401:
-          
+          // Dispatch an event instead of directly redirecting so the app
+          // can perform client-side navigation. This keeps React state and
+          // providers (like ToastContainer) mounted so toasts persist.
           if (typeof window !== 'undefined') {
-             const currentPath = window.location.pathname;
-            if (currentPath !== '/login') {
-              localStorage.removeItem('token');
+            try {
+              removeAuthToken();
+            } catch (e) {
+              // ignore
+            }
+            try {
+              const ev = new CustomEvent('api:unauthorized', {
+                detail: {
+                  url: error.config?.url,
+                  status: 401,
+                },
+              });
+              window.dispatchEvent(ev);
+            } catch (e) {
+              // Fallback to direct navigation if CustomEvent is not supported
+              console.warn('⚠️ Could not dispatch api:unauthorized event, falling back to full redirect', e);
               window.location.href = '/login';
-            } else {
-              console.warn('⚠️ Already on login page, skip redirect.');
             }
           }
           break;
@@ -107,19 +120,35 @@ apiClient.interceptors.response.use(
 // Helper functions
 export const setAuthToken = (token: string) => {
   if (typeof window !== 'undefined') {
-    localStorage.setItem('token', token);
+    try {
+      const secure = process.env.NODE_ENV === 'production' ? '; Secure' : '';
+      const maxAge = 7 * 24 * 60 * 60; // 7 days
+      document.cookie = `token=${encodeURIComponent(token)}; Path=/; Max-Age=${maxAge}; SameSite=Lax${secure}`;
+    } catch (e) {
+      // ignore
+    }
   }
 };
 
 export const removeAuthToken = () => {
   if (typeof window !== 'undefined') {
-    localStorage.removeItem('token');
+    try {
+      document.cookie = 'token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax';
+    } catch (e) {
+      // ignore
+    }
   }
 };
 
 export const getAuthToken = (): string | null => {
   if (typeof window !== 'undefined') {
-    return localStorage.getItem('token');
+    try {
+      const m = document.cookie.match(/(?:^|; )token=([^;]+)/);
+      if (m) return decodeURIComponent(m[1]);
+    } catch (e) {
+      // ignore
+    }
+    return null;
   }
   return null;
 };

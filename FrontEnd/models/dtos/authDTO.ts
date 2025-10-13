@@ -1,5 +1,6 @@
 import z from "zod";
-import { ForgotPasswordRequestDTO } from './authDTO';
+import { UserInfoDTO } from "./userDTO";
+
 
 export interface LoginRequestDTO {
   email: string;
@@ -12,14 +13,6 @@ export interface LoginResponseDTO {
   expiresAtUtc: string; 
   user: UserInfoDTO;
   permissions: string[];
-}
-
-export interface UserInfoDTO {
-  userId: number;
-  fullName: string;
-  email: string;
-  role: string;
-  imageUrl?: string | null; 
 }
 
 export const registerSchema = z
