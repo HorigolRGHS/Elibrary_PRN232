@@ -31,6 +31,24 @@ namespace Elib.Interaction.Service.Services
         // CREATE
         public async Task<RatingReadDTO> CreateAsync(RatingCreateDTO dto)
         {
+            // kiểm tra đã có rate chưa
+            var existing = await _repo.Query()
+                .FirstOrDefaultAsync(r => r.DocumentId == dto.DocumentId && r.CreatedBy == dto.CreatedBy);
+
+            if (existing != null)
+            {
+                // Update
+                existing.StarRating = dto.StarRating;
+                existing.Review = dto.Review;
+                existing.UpdatedDate = DateTime.UtcNow;
+
+                _repo.Update(existing);
+                await _repo.SaveChangesAsync();
+
+                return _mapper.Map<RatingReadDTO>(existing);
+            }
+
+            // Create
             var entity = _mapper.Map<Rating>(dto);
             entity.CreatedDate = DateTime.UtcNow;
 
