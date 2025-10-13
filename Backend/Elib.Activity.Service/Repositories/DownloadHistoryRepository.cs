@@ -25,7 +25,7 @@ namespace Elib.Activity.Service.Repositories
             await _context.SaveChangesAsync(ct);
         }
 
-                public async Task<List<(int DocumentId, int Total, DateTime LastDownloadedDate)>> GetTopDownloadsAsync(
+        public async Task<List<(int DocumentId, int Total, DateTime LastDownloadedDate)>> GetTopDownloadsAsync(
             int take,
             DateTime? from = null,
             DateTime? to = null,
