@@ -77,6 +77,9 @@ builder.Services.AddMassTransit(cfg =>
 {
     cfg.SetKebabCaseEndpointNameFormatter();
     cfg.AddConsumer<GetDocumentSummaryConsumer>();
+    cfg.AddConsumer<CatalogTitlesRequestConsumer>();
+    cfg.AddConsumer<CatalogCountersRequestConsumer>();
+
 
     cfg.UsingRabbitMq((context, bus) =>
     {
@@ -89,6 +92,15 @@ builder.Services.AddMassTransit(cfg =>
         bus.ReceiveEndpoint("catalog.get-document-summary", e =>
         {
             e.ConfigureConsumer<GetDocumentSummaryConsumer>(context);
+        });
+        bus.ReceiveEndpoint("catalog.titles.request", e =>
+        {
+            e.ConfigureConsumer<CatalogTitlesRequestConsumer>(context);
+        });
+
+        bus.ReceiveEndpoint("catalog.counters.request", e =>
+        {
+            e.ConfigureConsumer<CatalogCountersRequestConsumer>(context);
         });
     });
 });

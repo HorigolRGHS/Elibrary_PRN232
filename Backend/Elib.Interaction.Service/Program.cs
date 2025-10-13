@@ -10,14 +10,17 @@ using Microsoft.OData.ModelBuilder;
 using SharedLibrary.Auths;
 using SharedLibrary.Commons;
 using MassTransit;
+using SharedLibrary.Messages;
 
 var builder = WebApplication.CreateBuilder(args);
 
 
-// Database
+// Database 
 builder.Services.AddDbContext<InteractionDb>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")
         ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.")));
+
+
 
 builder.Services.AddScoped<DbContext, InteractionDb>();
 builder.Services.AddHttpContextAccessor();
@@ -40,6 +43,10 @@ builder.Services.AddScoped<IUserSessionValidator, HttpUserSessionValidator>();
 builder.Services.AddMassTransit(cfg =>
 {
     cfg.SetKebabCaseEndpointNameFormatter();
+    cfg.AddRequestClient<CatalogTitlesRequest>();
+    cfg.AddRequestClient<CatalogCountersRequest>();
+    cfg.AddRequestClient<UserCountersRequest>();
+    cfg.AddRequestClient<TopDownloadsRequest>(new Uri("queue:activity.top-downloads"));
 
     cfg.UsingRabbitMq((context, bus) =>
     {
@@ -70,6 +77,8 @@ builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddScoped<IRatingRepository, RatingRepository>();
 builder.Services.AddScoped<IRatingService, RatingService>();
 
+builder.Services.AddScoped<IStatisticRepository, StatisticRepository>();
+builder.Services.AddScoped<IStatisticService, StatisticService>();
 
 // OData Configuration
 var modelBuilder = new ODataConventionModelBuilder();
