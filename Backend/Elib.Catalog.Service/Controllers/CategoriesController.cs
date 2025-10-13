@@ -16,7 +16,7 @@ using System.Threading.Tasks;
 
 namespace Elib.Catalog.Service.Controllers
 {
-    [Route("[controller]")]
+    [Route("api/[controller]")]
     [ApiController]
     public class CategoriesController : ODataController
     {

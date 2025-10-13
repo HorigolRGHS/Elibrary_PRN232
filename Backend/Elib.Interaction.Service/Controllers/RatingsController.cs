@@ -15,7 +15,7 @@ using System.Threading.Tasks;
 
 namespace Elib.Interaction.Service.Controllers
 {
-    [Route("[controller]")]
+    [Route("api/[controller]")]
     [ApiController]
     public class RatingsController : ODataController
     {
