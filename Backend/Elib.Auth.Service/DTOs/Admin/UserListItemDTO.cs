@@ -11,6 +11,8 @@ namespace Elib.Auth.Service.DTOs.Admin
         public string? ImageUrl { get; set; }
         public string Role { get; set; } = string.Empty;
         public bool Active { get; set; }
+        public DateTime CreatedDate { get; set; }
+        public DateTime? UpdatedDate { get; set; }
         public DateTime? DeletedDate { get; set; }
     }
 }

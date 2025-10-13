@@ -10,11 +10,11 @@ namespace Elib.Auth.Service.Profiles
         {
             CreateMap<Models.User, DTOs.RegisterRequestDTO>();
             CreateMap<Models.User, DTOs.UserInfoDTO>();
+            CreateMap<User, UserListItemDTO>();
 
             CreateMap<DTOs.RegisterRequestDTO, Models.User>();
+            CreateMap<UserListItemDTO, User>();
             CreateMap<DTOs.UserInfoDTO, Models.User>();
-
-            CreateMap<User, UserListItemDTO>();
             CreateMap<UpdateUserAccountDTO, User>();
         }
     }

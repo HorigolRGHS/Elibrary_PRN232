@@ -55,13 +55,14 @@ namespace Elib.Auth.Service.Services
                 user.FullName,
                 user.Email,
                 permissions: null,
-                imageUrl: user.ImageUrl
+                imageUrl: user.ImageUrl,
+                rememberMe: dto.RememberMe
             );
 
             var resp = new LoginResponseDTO
             {
                 AccessToken = token,
-                ExpiresAtUtc = DateTime.UtcNow.AddDays(_jwtSettings.ExpiryDays),
+                ExpiresAtUtc = dto.RememberMe ? DateTime.UtcNow.AddDays(_jwtSettings.RememberMeExpiryDays) :  DateTime.UtcNow.AddDays(_jwtSettings.ExpiryDays),
                 User = _mapper.Map<UserInfoDTO>(user),
                 Permissions = Array.Empty<string>()
             };
@@ -99,12 +100,26 @@ namespace Elib.Auth.Service.Services
             await _users.AddAsync(entity);
             await _users.SaveChangesAsync();
 
-            var baseUrl = _config["AuthService:BaseUrl"] ?? "https://localhost:7000/auth";
+            var baseUrl = _config["AuthService:FrontEndUrl"] ?? "https://localhost:3000";
             var confirmKey = _config["AuthService:ConfirmKey"];
             var token = BCrypt.Net.BCrypt.HashPassword(entity.CreatedDate + confirmKey); 
             var confirmUrl = $"{baseUrl}/confirm-registration?token={token}&email={entity.Email}";
-            var subject = "Confirm your account";
-            var body = $"<p>Hi {entity.FullName},</p><p>Please confirm your account by clicking the link below:</p><p><a href='{confirmUrl}'>Confirm Account</a></p>";
+            var subject = "Confirm your account - EMC Library";
+            var body = $@"
+                <div style='font-family:Segoe UI,Arial,sans-serif;max-width:600px;margin:auto;border:1px solid #e0e0e0;border-radius:8px;padding:24px;background:#fafafa;'>
+                    <div style='text-align:center;'>
+                        <img src='https://ik.imagekit.io/i0aiv29ol/EMC_LIBRARY_2-removebg-preview.png?updatedAt=1760120698017' alt='EMC Library' style='width:120px;height:auto;margin-bottom:16px;'/>
+                        <h2 style='color:#1e3a8a;'>Welcome to EMC Library!</h2>
+                    </div>
+                    <p>Hi <strong>{entity.FullName}</strong>,</p>
+                    <p>Thank you for registering at <strong>EMC Library</strong>! Please confirm your account by clicking the button below:</p>
+                    <div style='text-align:center;margin:24px 0;'>
+                        <a href='{confirmUrl}' style='background:#2563eb;color:#fff;padding:12px 24px;text-decoration:none;border-radius:6px;font-weight:500;'>Confirm Account</a>
+                    </div>
+                    <p style='font-size:14px;color:#555;'>If you didn’t sign up for EMC Library, you can safely ignore this email.</p>
+                    <hr style='margin:24px 0;border:none;border-top:1px solid #ddd;'/>
+                    <p style='font-size:12px;color:#999;text-align:center;'>© {DateTime.UtcNow.Year} EMC Library. All rights reserved.</p>
+                </div>";
             try
             {
                 _ = Task.Run(() => _email.SendEmailAsync(entity.Email, subject, body));
@@ -182,16 +197,25 @@ namespace Elib.Auth.Service.Services
             var rawToken = handler.WriteToken(token);
 
             var baseUrl = _config["AuthService:FrontEndUrl"] ?? "https://localhost:3000";
-            var link = $"{baseUrl}/reset?token={Uri.EscapeDataString(rawToken)}&email={Uri.EscapeDataString(user.Email)}";
-
-            var subject = "Reset your password";
+            var link = $"{baseUrl}/reset-password?token={Uri.EscapeDataString(rawToken)}&email={Uri.EscapeDataString(user.Email)}";
+            var subject = "Reset your password - EMC Library";
             var body = $@"
-                <p>Hi {user.FullName},</p>
-                <p>You can reset your password by clicking the link below:</p>
-                <p><a href='{link}'>Reset Password</a></p>
-                <p>This link will expire in 15 minutes.</p>";
-
+                <div style='font-family:Segoe UI,Arial,sans-serif;max-width:600px;margin:auto;border:1px solid #e0e0e0;border-radius:8px;padding:24px;background:#fafafa;'>
+                    <div style='text-align:center;'>
+                        <img src='https://ik.imagekit.io/i0aiv29ol/EMC_LIBRARY_2-removebg-preview.png?updatedAt=1760120698017' alt='EMC Library' style='width:120px;height:auto;margin-bottom:16px;'/>
+                        <h2 style='color:#1e3a8a;'>Password Reset Request</h2>
+                    </div>
+                    <p>Hi <strong>{user.FullName}</strong>,</p>
+                    <p>We received a request to reset your password for your <strong>EMC Library</strong> account. Click the button below to set a new password:</p>
+                    <div style='text-align:center;margin:24px 0;'>
+                        <a href='{link}' style='background:#2563eb;color:#fff;padding:12px 24px;text-decoration:none;border-radius:6px;font-weight:500;'>Reset Password</a>
+                    </div>
+                    <p style='font-size:14px;color:#555;'>This link will expire in 15 minutes for security reasons. If you did not request a password reset, please ignore this email.</p>
+                    <hr style='margin:24px 0;border:none;border-top:1px solid #ddd;'/>
+                    <p style='font-size:12px;color:#999;text-align:center;'>© {DateTime.UtcNow.Year} EMC Library. All rights reserved.</p>
+                </div>";
             try { _ = Task.Run(() => _email.SendEmailAsync(user.Email, subject, body)); } catch { }
+
 
             return ApiResponse<string>.Ok(null, "Reset link has been sent to your email.");
         }

@@ -10,6 +10,7 @@ namespace Elib.Auth.Service.Services
     public interface IUserService
     {
         Task<ApiResponse<User>> GetByEmailAsync(string email);
+        Task<ApiResponse<User>> GetByIdAsync(int userId);
         IQueryable<UserListItemDTO> GetAll(int userId);
         Task<ApiResponse<string>> UpdateUserAsync(UpdateUserAccountDTO dto);
         Task<ApiResponse<string>> DeleteUserAsync(int userId);

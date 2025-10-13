@@ -11,3 +11,16 @@ export type User = {
     DeletedDate: string | null;
     DeletedBy: string | null;
 }
+
+export type JwtPayload = {
+  sub?: string;
+  name?: string; 
+  email?: string;
+  role?: string;
+  image_url?: string; 
+  exp?: number;
+  iss?: string;
+  aud?: string;
+  raw?: Record<string, any>;
+  [k: string]: any;
+};
