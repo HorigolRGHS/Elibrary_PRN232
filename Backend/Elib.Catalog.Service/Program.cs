@@ -5,6 +5,7 @@ using Elib.Catalog.Service.Models;
 using Elib.Catalog.Service.Profiles;
 using Elib.Catalog.Service.Repositories;
 using Elib.Catalog.Service.Services;
+using Elib.Catalog.Service.Controllers;
 using MassTransit;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OData;
@@ -13,6 +14,7 @@ using Microsoft.OData.ModelBuilder;
 using SharedLibrary.Auths;
 using SharedLibrary.Commons;
 using SharedLibrary.Repositories;
+using SharedLibrary.Messages;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -26,6 +28,8 @@ builder.Services.AddDbContext<CatalogDb>(optionsAction =>
 
 builder.Services.AddAutoMapper(cfg =>
 {
+    cfg.AddMaps(typeof(SubjectProfiles).Assembly);
+    cfg.AddMaps(typeof(DocumentProfile).Assembly);
     cfg.AddMaps(typeof(CategoryProfile).Assembly);
 });
 
@@ -36,23 +40,29 @@ builder.Services.AddScoped<IDocumentRepository, DocumentRepository>();
 builder.Services.AddScoped<IDocumentService, DocumentService>();
 builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
+builder.Services.AddScoped<IViewTrackingService, ViewTrackingService>();
+builder.Services.AddScoped<EnrichDocumentUserNamesFilter>();
+
+// In-memory cache for view tracking (1 user = 1 view/day)
+builder.Services.AddMemoryCache();
 
 builder.Services.AddJwtAuthSwagger();
 
 
 var modelBuilder = new ODataConventionModelBuilder();
-modelBuilder.EntitySet<Document>("Document");
+modelBuilder.EntitySet<AdminDocumentListDTO>("Documents");
 modelBuilder.EntitySet<Category>("Category");
 modelBuilder.EntitySet<Subject>("Subject");
 builder.Services.AddControllers()
     .AddOData(options => options
+        .AddRouteComponents("odata", modelBuilder.GetEdmModel())
         .Select()
         .Filter()
         .OrderBy()
         .Expand()
         .Count()
-        .SetMaxTop(100)
-        .AddRouteComponents("odata", modelBuilder.GetEdmModel()))
+        .SetMaxTop(null)
+        .OrderBy())
     .ConfigureApiBehaviorOptions(options =>
     {
         options.InvalidModelStateResponseFactory = context =>
@@ -67,11 +77,6 @@ builder.Services.AddControllers()
         };
     });
 
-builder.Services.AddAutoMapper(cfg =>
-{
-    cfg.AddMaps(typeof(SubjectProfiles).Assembly);
-    cfg.AddMaps(typeof(DocumentProfile).Assembly);
-});
 
 builder.Services.AddMassTransit(cfg =>
 {
@@ -79,7 +84,10 @@ builder.Services.AddMassTransit(cfg =>
     cfg.AddConsumer<GetDocumentSummaryConsumer>();
     cfg.AddConsumer<CatalogTitlesRequestConsumer>();
     cfg.AddConsumer<CatalogCountersRequestConsumer>();
+    cfg.AddConsumer<DocumentDownloadedConsumer>();
 
+    // Register request client for fetching user full names from Auth service
+    cfg.AddRequestClient<UserFullNamesRequest>();
 
     cfg.UsingRabbitMq((context, bus) =>
     {
@@ -102,12 +110,20 @@ builder.Services.AddMassTransit(cfg =>
         {
             e.ConfigureConsumer<CatalogCountersRequestConsumer>(context);
         });
+        bus.ReceiveEndpoint("activity.downloads", e =>
+        {
+            e.ConfigureConsumer<DocumentDownloadedConsumer>(context);
+
+            e.PrefetchCount = 16;
+            e.ConcurrentMessageLimit = 8;
+            e.UseMessageRetry(r => r.Interval(3, TimeSpan.FromSeconds(5)));
+
+        });
     });
 });
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-
 builder.Services.AddJwtAuth(builder.Configuration);
 
 
@@ -121,7 +137,6 @@ builder.Services.AddHttpClient("AuthService", c =>
 
 builder.Services.AddScoped<IUserSessionValidator, HttpUserSessionValidator>();
 
-builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 

@@ -33,7 +33,7 @@ namespace Elib.Catalog.Service.Repositories
                 .Include(d => d.Category)
                 .Include(d => d.Subject)
                 .Where(d => !d.DeletedBy.HasValue)
-                .AsNoTracking();
+                .AsQueryable();
         }
 
         public IQueryable<Document> GetPublicDocumentsQueryable()
@@ -73,6 +73,34 @@ namespace Elib.Catalog.Service.Repositories
             _dbSet.Update(entity);
             await _context.SaveChangesAsync();
             return true;
+        }
+
+        public async Task<bool> IncreaseView(int documentId, CancellationToken ct = default)
+        {
+            var rows = await _dbSet
+        .Where(d => d.DocumentId == documentId
+                 && d.DeletedBy == null
+                 && d.Status == "Accepted")
+        .ExecuteUpdateAsync(s => s
+            .SetProperty(d => d.ViewCount, d => d.ViewCount + 1)
+            .SetProperty(d => d.UpdatedDate, _ => DateTime.UtcNow),
+            ct);
+
+            return rows > 0;
+        }
+
+        public async Task<bool> IncreaseDownload(int documentId, CancellationToken ct = default)
+        {
+            var rows = await _dbSet
+                .Where(d => d.DocumentId == documentId
+                         && d.DeletedBy == null
+                         && d.Status == "Accepted")
+                .ExecuteUpdateAsync(s => s
+                    .SetProperty(d => d.DownloadCount, d => d.DownloadCount + 1)
+                    .SetProperty(d => d.UpdatedDate, _ => DateTime.UtcNow),
+                    ct);
+
+            return rows > 0;
         }
     }
 }

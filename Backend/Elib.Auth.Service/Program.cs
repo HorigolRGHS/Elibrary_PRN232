@@ -74,6 +74,7 @@ builder.Services.AddMassTransit(x =>
 
 
     x.AddConsumer<UserCountersRequestConsumer>();
+    x.AddConsumer<UserFullNamesRequestConsumer>();
 
     x.UsingRabbitMq((context, cfg) =>
     {

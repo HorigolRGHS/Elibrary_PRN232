@@ -3,10 +3,10 @@ using AutoMapper.QueryableExtensions;
 using Elib.Catalog.Service.DTOs;
 using Elib.Catalog.Service.Models;
 using Elib.Catalog.Service.Repositories;
-using Humanizer;
-using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
 using SharedLibrary.Commons;
+using MassTransit;
+using SharedLibrary.Messages;
 
 namespace Elib.Catalog.Service.Services
 {
@@ -14,64 +14,68 @@ namespace Elib.Catalog.Service.Services
     {
         private readonly IDocumentRepository _repository;
         private readonly IMapper _mapper;
+        private readonly IRequestClient<UserFullNamesRequest> _userFullNamesClient;
 
-        public DocumentService(IDocumentRepository repository, IMapper mapper)
+        public DocumentService(
+            IDocumentRepository repository, 
+            IMapper mapper,
+            IRequestClient<UserFullNamesRequest> userFullNamesClient)
         {
             _repository = repository;
             _mapper = mapper;
+            _userFullNamesClient = userFullNamesClient;
         }
 
-        public async Task<ApiResponse<string>> ApproveAsync(int id, ApproveDocumentDTO req)
+        public async Task<ApiResponse<string>> ApproveAsync(int id, ApproveDocumentDTO req, int userId)
         {
             if (req.Accept)
             {
-                var ok = await _repository.ApproveAsync(id, req.ApprovedBy);
+                var ok = await _repository.ApproveAsync(id, userId);
                 return ok
-                    ? ApiResponse<string>.Ok("Approved")
+                    ? ApiResponse<string>.Ok("","Approved")
                     : ApiResponse<string>.Fail("Cannot approve: not found or not Pending");
             }
             else
             {
-                var ok = await _repository.RejectAsync(id, req.ApprovedBy, req.Reason);
+                var ok = await _repository.RejectAsync(id, userId, req.Reason);
                 return ok
-                    ? ApiResponse<string>.Ok("Rejected")
+                    ? ApiResponse<string>.Ok("","Rejected")
                     : ApiResponse<string>.Fail("Cannot reject: not found or not Pending");
             }
         }
 
-        public async Task<ApiResponse<string>> CreateAsync(CreateDocumentDTO entity)
+        public async Task<ApiResponse<string>> CreateAsync(CreateDocumentDTO entity, int userId)
         {
             var entityr = _mapper.Map<Document>(entity);
+
+            entityr.CreatedBy = userId;
+            entityr.CreatedDate = DateTime.UtcNow;
 
             await _repository.AddAsync(entityr);
             await _repository.SaveChangesAsync();
 
-            return ApiResponse<string>.Ok($"Created document #{entityr.DocumentId}");
+            return ApiResponse<string>.Ok(null, $"Created document successfully!");
         }
 
-        public async Task<ApiResponse<bool>> DeleteAsync(int id)
+        public async Task<ApiResponse<bool>> DeleteAsync(int id, int userId, string? userRole)
         {
             var existing = await _repository.GetByIdAsync(id);
             if (existing == null || existing.DeletedBy.HasValue)
                 return ApiResponse<bool>.Fail("Document not found");
 
-            existing.DeletedBy = existing.CreatedBy; 
+            if (!string.Equals(userRole, "Admin", StringComparison.OrdinalIgnoreCase))
+            {
+                if (existing.CreatedBy != userId)
+                    return ApiResponse<bool>.Fail("You do not have permission to delete this document. Only the creator or admin can delete it.");
+            }
+
+            existing.DeletedBy = userId;
             existing.DeletedDate = DateTime.UtcNow;
 
             await _repository.UpdateAsync(existing);
             await _repository.SaveChangesAsync();
 
-            return ApiResponse<bool>.Ok(true);
-        }
-
-        public async Task<ApiResponse<IEnumerable<AdminDocumentListDTO>>> GetAllAdminAsync()
-        {
-            var data = await _repository
-                .GetAllQueryable()
-                .ProjectTo<AdminDocumentListDTO>(_mapper.ConfigurationProvider)
-                .ToListAsync();
-
-            return ApiResponse<IEnumerable<AdminDocumentListDTO>>.Ok(data);
+            return ApiResponse<bool>.Ok(true, "Document deleted successfully");
         }
 
         public async Task<ApiResponse<IEnumerable<UserDocumentListDTO>>> GetAllAsync()
@@ -92,9 +96,34 @@ namespace Elib.Catalog.Service.Services
                 .ProjectTo<AdminDocumentItemDTO>(_mapper.ConfigurationProvider)
                 .FirstOrDefaultAsync();
 
-            return dto != null
-                ? ApiResponse<AdminDocumentItemDTO>.Ok(dto)
-                : ApiResponse<AdminDocumentItemDTO>.Fail("Not found");
+            if (dto == null)
+                return ApiResponse<AdminDocumentItemDTO>.Fail("Not found");
+
+            // Fetch user full names from Auth service via RabbitMQ
+            var userIds = new List<int> { dto.CreatedBy };
+            if (dto.DeletedBy.HasValue)
+                userIds.Add(dto.DeletedBy.Value);
+
+            try
+            {
+                var response = await _userFullNamesClient.GetResponse<UserFullNamesResponse>(
+                    new UserFullNamesRequest(Guid.NewGuid(), userIds),
+                    timeout: RequestTimeout.After(s: 5)
+                );
+
+                var userFullNames = response.Message.UserFullNames;
+                
+               if (userFullNames.TryGetValue(dto.CreatedBy, out var createdByName))
+                    dto.CreatedByUsername = createdByName;
+                
+                if (dto.DeletedBy.HasValue && userFullNames.TryGetValue(dto.DeletedBy.Value, out var deletedByName))
+                    dto.DeletedByUsername = deletedByName;
+            }
+            catch (RequestTimeoutException)
+            {
+            }
+
+            return ApiResponse<AdminDocumentItemDTO>.Ok(dto);
         }
 
         public async Task<ApiResponse<UserDocumentItemDTO>> GetByIdAsync(int id)
@@ -110,13 +139,13 @@ namespace Elib.Catalog.Service.Services
                 : ApiResponse<UserDocumentItemDTO>.Fail("Not found");
         }
 
-        public Task<IQueryable<AdminDocumentListDTO>> GetDocumentsForAdminQueryableAsync()
+        public IQueryable<AdminDocumentListDTO> GetDocumentsForAdminQueryableAsync()
         {
             var q = _repository
                 .GetAllQueryable()
                 .ProjectTo<AdminDocumentListDTO>(_mapper.ConfigurationProvider);
 
-            return Task.FromResult(q);
+            return q;
         }
 
         public Task<IQueryable<UserDocumentListDTO>> GetDocumentsForUserQueryableAsync()
@@ -126,6 +155,29 @@ namespace Elib.Catalog.Service.Services
                 .ProjectTo<UserDocumentListDTO>(_mapper.ConfigurationProvider);
 
             return Task.FromResult(q);
+        }
+
+        public async Task<ApiResponse<string>> IncreaseDownload(int id)
+        {
+            var doit = await _repository.IncreaseDownload(id);
+            if (doit)
+            {
+                return ApiResponse<string>.Ok(null, "Count download successfully!");
+
+            }
+            return ApiResponse<string>.Fail("Count download failed!");
+
+        }
+
+        public async Task<ApiResponse<string>> IncreaseView(int id)
+        {
+            var doit = await _repository.IncreaseView(id);
+            if (doit)
+            {
+                return ApiResponse<string>.Ok(null, "Count view successfully!");
+            }
+            return ApiResponse<string>.Fail("Count view failed!");
+
         }
 
         public async Task<ApiResponse<string>> UpdateAsync(int id, UpdateDocumentDTO entity)
@@ -149,6 +201,42 @@ namespace Elib.Catalog.Service.Services
             await _repository.SaveChangesAsync();
 
             return ApiResponse<string>.Ok("Updated");
+        }
+
+        public async Task EnrichDocumentsWithUserNames(IEnumerable<AdminDocumentListDTO> documents)
+        {
+            if (documents == null || !documents.Any())
+                return;
+
+            // Collect all unique user IDs from documents (CreatedBy)
+            var userIds = documents
+                .Select(d => d.CreatedBy)
+                .Distinct()
+                .ToList();
+
+            if (!userIds.Any())
+                return;
+
+            try
+            {
+                var response = await _userFullNamesClient.GetResponse<UserFullNamesResponse>(
+                    new UserFullNamesRequest(Guid.NewGuid(), userIds),
+                    timeout: RequestTimeout.After(s: 5)
+                );
+
+                var userFullNames = response.Message.UserFullNames;
+
+                foreach (var doc in documents)
+                {
+                    if (userFullNames.TryGetValue(doc.CreatedBy, out var fullName))
+                    {
+                        doc.CreatedByFullname = fullName;
+                    }
+                }
+            }
+            catch (RequestTimeoutException)
+            {
+            }
         }
     }
 }

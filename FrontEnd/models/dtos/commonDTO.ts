@@ -10,3 +10,9 @@ export interface PagedResult<T> {
   page: number;
   pageSize: number;
 }
+
+export interface OdataResult<T> {
+  "@odata.context": string;
+  "@odata.count": number;
+  value: T[];
+}

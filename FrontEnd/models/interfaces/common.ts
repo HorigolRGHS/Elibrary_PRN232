@@ -7,7 +7,7 @@ interface SearchBarProps {
 }
 
 
-interface PaginationBarProps {
+export interface PaginationBarProps {
   currentPage: number;
   totalPages: number;
   totalCount?: number;

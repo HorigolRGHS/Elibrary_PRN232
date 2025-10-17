@@ -1,27 +1,22 @@
 import axios, { AxiosRequestConfig, AxiosResponse, AxiosError } from "axios";
 
-// Base API client
 const apiClient = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_BASE_URL || "https://localhost:7000",
   timeout: 30000,
-  withCredentials: true, // Cho phép gửi cookies
+  withCredentials: true, 
   headers: {
     'Accept': 'application/json',
   },
 });
 
-// Request interceptor
 apiClient.interceptors.request.use(
   (config) => {
-    // Tự động set Content-Type dựa trên data type
     if (config.data instanceof FormData) {
-      // Để browser tự động set multipart/form-data với boundary
       delete config.headers["Content-Type"];
     } else if (typeof config.data === 'object' && config.data !== null) {
       config.headers["Content-Type"] = "application/json";
     }
 
-    // Thêm authorization token nếu có (đọc từ cookie trên client)
     const token = typeof window !== 'undefined' ? getAuthToken() : null;
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
@@ -45,10 +40,8 @@ apiClient.interceptors.request.use(
   }
 );
 
-// Response interceptor
 apiClient.interceptors.response.use(
   (response: AxiosResponse) => {
-    // Log response trong development
     if (process.env.NODE_ENV === 'development') {
       console.log('✅ API Response:', {
         status: response.status,
@@ -59,20 +52,15 @@ apiClient.interceptors.response.use(
     return response;
   },
   (error: AxiosError) => {
-    // Handle common errors
     if (error.response) {
       const status = error.response.status;
       const message = (error.response.data as { message?: string })?.message || error.message;
       switch (status) {
         case 401:
-          // Dispatch an event instead of directly redirecting so the app
-          // can perform client-side navigation. This keeps React state and
-          // providers (like ToastContainer) mounted so toasts persist.
           if (typeof window !== 'undefined') {
             try {
               removeAuthToken();
             } catch (e) {
-              // ignore
             }
             try {
               const ev = new CustomEvent('api:unauthorized', {
@@ -83,7 +71,6 @@ apiClient.interceptors.response.use(
               });
               window.dispatchEvent(ev);
             } catch (e) {
-              // Fallback to direct navigation if CustomEvent is not supported
               console.warn('⚠️ Could not dispatch api:unauthorized event, falling back to full redirect', e);
               window.location.href = '/login';
             }
@@ -211,6 +198,35 @@ export const api = {
     link.click();
     document.body.removeChild(link);
     window.URL.revokeObjectURL(downloadUrl);
+  },
+
+  // Get file as blob for viewing
+  getFileBlob: async (url: string): Promise<Blob> => {
+    const response = await apiClient.get(url, {
+      responseType: 'blob',
+    });
+    return response.data;
+  },
+
+  // Get file as File object for PDF viewer
+  getFileAsFile: async (url: string, filename?: string): Promise<File> => {
+    console.log('📁 Fetching file from URL:', url);
+    const response = await apiClient.get(url, {
+      responseType: 'blob',
+    });
+    console.log('📁 File response received:', {
+      status: response.status,
+      contentType: response.headers['content-type'],
+      size: response.data.size,
+    });
+    const blob = new Blob([response.data], { type: response.headers['content-type'] || 'application/pdf' });
+    const file = new File([blob], filename || 'document.pdf', { type: blob.type });
+    console.log('📁 File object created:', {
+      name: file.name,
+      size: file.size,
+      type: file.type,
+    });
+    return file;
   },
 };
 

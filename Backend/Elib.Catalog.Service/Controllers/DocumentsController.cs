@@ -1,21 +1,21 @@
-﻿using Elib.Catalog.Service.DTOs;
+﻿using Elib.Catalog.Service.Data;
+using Elib.Catalog.Service.DTOs;
 using Elib.Catalog.Service.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OData.Query;
+using SharedLibrary.Auths;
+using System.Security.Claims;
 
 namespace Elib.Catalog.Service.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class DocumentsController : ControllerBase
+    public class DocumentsController(IDocumentService service, IViewTrackingService viewTracking, CatalogDb dbcontext) : ControllerBase
     {
-        private readonly IDocumentService _service;
-
-        public DocumentsController(IDocumentService service)
-        {
-            _service = service;
-        }
+        protected readonly IDocumentService _service = service;
+        protected readonly IViewTrackingService _viewTracking = viewTracking;
+        protected readonly CatalogDb _dbcontext = dbcontext;
 
         [HttpGet]
         [AllowAnonymous]
@@ -30,15 +30,34 @@ namespace Elib.Catalog.Service.Controllers
         public async Task<IActionResult> GetById(int id)
         {
             var resp = await _service.GetByIdAsync(id);
-            return resp.Success ? Ok(resp) : NotFound(resp);
+            if (!resp.Success) return NotFound(resp);
+
+            int? userId = User?.Identity?.IsAuthenticated == true 
+                ? User.GetUserIdOrThrow()
+                : null;
+
+            HttpContext.Response.OnCompleted(async () =>
+            {
+                try
+                {
+                    await _viewTracking.TryIncrementViewAsync(id, userId, CancellationToken.None);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[DocumentsController] View tracking failed for DocId={id}, UserId={userId}. {ex}");
+                }
+            });
+
+            return Ok(resp);
         }
 
+        [EnableQuery]
         [HttpGet("admin")]
         [Authorize(Roles = "Admin")]
-        public async Task<IActionResult> GetAllAdmin()
+        [ServiceFilter(typeof(EnrichDocumentUserNamesFilter))]
+        public IActionResult Get()
         {
-            var resp = await _service.GetAllAdminAsync();
-            return Ok(resp);
+            return Ok(_service.GetDocumentsForAdminQueryableAsync());
         }
 
         [HttpGet("admin/{id:int}")]
@@ -50,14 +69,20 @@ namespace Elib.Catalog.Service.Controllers
         }
 
         [HttpPost]
+        [Authorize]
         public async Task<IActionResult> Create([FromBody] CreateDocumentDTO dto)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
-            var resp = await _service.CreateAsync(dto);
+            
+            // Get user ID from bearer token claims
+            var userId = User.GetUserIdOrThrow();
+            
+            var resp = await _service.CreateAsync(dto, userId);
             return Ok(resp);
         }
 
-        [HttpPut("{id:int}")]
+        [Authorize(Roles = "Admin,Customer")]
+        [HttpPatch("{id:int}")]
         public async Task<IActionResult> Update(int id, [FromBody] UpdateDocumentDTO dto)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
@@ -65,11 +90,16 @@ namespace Elib.Catalog.Service.Controllers
             return resp.Success ? Ok(resp) : BadRequest(resp);
         }
 
+        [Authorize(Roles = "Admin,Customer")]
         [HttpDelete("{id:int}")]
         public async Task<IActionResult> Delete(int id)
         {
-            var resp = await _service.DeleteAsync(id);
-            return resp.Success ? Ok(resp) : NotFound(resp);
+            // Get user ID and role from bearer token claims
+            var userId = User.GetUserIdOrThrow();
+            var userRole = User.FindFirstValue(System.Security.Claims.ClaimTypes.Role);
+            
+            var resp = await _service.DeleteAsync(id, userId, userRole);
+            return resp.Success ? Ok(resp) : (resp.Message.Contains("not found") ? NotFound(resp) : Forbid());
         }
 
         [HttpPost("{id:int}/approve")]
@@ -77,22 +107,12 @@ namespace Elib.Catalog.Service.Controllers
         public async Task<IActionResult> Approve(int id, [FromBody] ApproveDocumentDTO req)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
-            var resp = await _service.ApproveAsync(id, req);
+            
+            // Get user ID from bearer token claims
+            var userId = User.GetUserIdOrThrow();
+            
+            var resp = await _service.ApproveAsync(id, req, userId);
             return resp.Success ? Ok(resp) : BadRequest(resp);
-        }
-
-        [EnableQuery]
-        [HttpGet("query")]
-        public async Task<IQueryable<UserDocumentListDTO>> QueryUser()
-        {
-            return await _service.GetDocumentsForUserQueryableAsync();
-        }
-
-        [EnableQuery]
-        [HttpGet("admin/query")]
-        public async Task<IQueryable<AdminDocumentListDTO>> QueryAdmin()
-        {
-            return await _service.GetDocumentsForAdminQueryableAsync();
         }
 
     }

@@ -11,12 +11,26 @@ namespace Elib.Activity.Service.Repositories
             _context = context;
         }
 
+        public IQueryable<DownloadHistory> GetAll()
+        {
+            return _context.DownloadHistories
+                           .AsNoTracking()
+                           .OrderByDescending(x => x.DownloadedDate);
+        }
+
         public IQueryable<DownloadHistory> QueryByUser(int userId)
         {
             return _context.DownloadHistories
                            .AsNoTracking()
                            .Where(x => x.DownloadedBy == userId)
                            .OrderByDescending(x => x.DownloadedDate);
+        }
+
+        public async Task<DownloadHistory?> GetByIdAsync(int downloadId, CancellationToken ct = default)
+        {
+            return await _context.DownloadHistories
+                                 .AsNoTracking()
+                                 .FirstOrDefaultAsync(x => x.DownloadId == downloadId, ct);
         }
 
         public async Task RecordUserDownload(DownloadHistory download, CancellationToken ct = default)

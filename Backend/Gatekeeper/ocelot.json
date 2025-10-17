@@ -10,8 +10,8 @@
     },
     {
       "UpstreamPathTemplate": "/catalog/{everything}",
-      "UpstreamHttpMethod": [ "GET", "POST", "PUT" ],
-      "DownstreamPathTemplate": "/api/{everything}",
+      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "PATCH", "DELETE" ],
+      "DownstreamPathTemplate": "/{everything}",
       "DownstreamHostAndPorts": [
         { "Host": "localhost", "Port": 7002 }
       ]
@@ -19,7 +19,7 @@
     {
       "UpstreamPathTemplate": "/activity/{everything}",
       "UpstreamHttpMethod": [ "GET", "POST", "PUT" ],
-      "DownstreamPathTemplate": "/api/{everything}",
+      "DownstreamPathTemplate": "/{everything}",
       "DownstreamHostAndPorts": [
         { "Host": "localhost", "Port": 7003 }
       ]
@@ -34,8 +34,8 @@
     },
     {
       "UpstreamPathTemplate": "/file/{everything}",
-      "UpstreamHttpMethod": [ "GET", "POST", "PUT" ],
-      "DownstreamPathTemplate": "/api/{everything}",
+      "UpstreamHttpMethod": [ "GET", "POST" ],
+      "DownstreamPathTemplate": "/{everything}",
       "DownstreamHostAndPorts": [
         { "Host": "localhost", "Port": 7005 }
       ]

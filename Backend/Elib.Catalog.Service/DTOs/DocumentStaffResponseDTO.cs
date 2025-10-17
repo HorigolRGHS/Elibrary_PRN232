@@ -1,4 +1,6 @@
-﻿namespace Elib.Catalog.Service.DTOs
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace Elib.Catalog.Service.DTOs
 {
     public class AdminDocumentItemDTO
     {
@@ -24,6 +26,7 @@
 
     public class AdminDocumentListDTO
     {
+        [Key]
         public int DocumentId { get; set; }
         public string Title { get; set; } = null!;
         public string? CategoryName { get; set; }
@@ -32,7 +35,8 @@
         public int ViewCount { get; set; }
         public int DownloadCount { get; set; }
         public DateTime CreatedDate { get; set; }
-        public string? CreatedByUsername { get; set; }
+        public int CreatedBy { get; set; }
+        public string? CreatedByFullname { get; set; }
         public DateTime? DeletedDate { get; set; }
     }
 }

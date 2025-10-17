@@ -5,7 +5,6 @@ using Elib.Activity.Service.Repositories;
 using Elib.Activity.Service.Services;
 using Microsoft.AspNetCore.Mvc;
 using MassTransit;
-using Microsoft.AspNetCore.OData;
 using Microsoft.EntityFrameworkCore;
 using SharedLibrary.Audits;
 using SharedLibrary.Auths;
@@ -20,16 +19,6 @@ builder.AddServiceDefaults();
 
 // Add services to the container.
 builder.Services.AddControllers()
-    .AddOData(options => options
-        .Select()
-        .Filter()
-        .OrderBy()
-        .Expand()
-        .Count()
-        .SetMaxTop(100)
-
-    // .AddRouteComponents("odata", modelBuilder.GetEdmModel())
-    )
     .ConfigureApiBehaviorOptions(options =>
     {
         options.InvalidModelStateResponseFactory = context =>
@@ -54,11 +43,8 @@ builder.Services.AddDbContext<ActivityDb>(optionsAction =>
     optionsAction.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
 });
 
-///////////////////////////
-
 builder.Services.AddScoped<DbContext, ActivityDb>();
 builder.Services.AddHttpContextAccessor();
-//////////////////////////
 
 builder.Services.AddJwtAuth(builder.Configuration);
 
