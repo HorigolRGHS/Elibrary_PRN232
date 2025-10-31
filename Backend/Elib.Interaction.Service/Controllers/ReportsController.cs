@@ -7,6 +7,7 @@ using Elib.Interaction.Service.Services;
 using Elib.Interaction.Service.DTOs;
 using SharedLibrary.Commons;
 using Elib.Interaction.Service.DTOs.Elib.Interaction.Service.DTOs;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 
 namespace Elib.Interaction.Service.Controllers
 {
@@ -24,13 +25,37 @@ namespace Elib.Interaction.Service.Controllers
 
         // ===============================================
         // GET: api/Reports/odata?$filter=Status eq 'Pending'&$orderby=CreatedDate desc&$top=10&$skip=0&$count=true
-        [HttpGet("odata")]
-        [EnableQuery]
-        [Authorize(Roles = "Admin,Customer")]
-        public IActionResult GetReportsOData()
+        [HttpGet]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "Admin,Customer")]
+        public IActionResult GetReports(
+            [FromQuery(Name = "$skip")] int? skip,
+            [FromQuery(Name = "$top")] int? top,
+            [FromQuery(Name = "$count")] bool? count)
         {
-            var query = _reportService.AsQueryable();
-            return Ok(query);
+            var s = skip.GetValueOrDefault(0);
+            var t = top.GetValueOrDefault(10);
+            if (t <= 0) t = 10;
+            if (s < 0) s = 0;
+
+            var includeCount = count.GetValueOrDefault(true);
+
+            var query = _reportService.AsQueryable()
+                .OrderByDescending(r => r.CreatedDate)
+                .Skip(s)
+                .Take(t);
+
+            var items = query.ToList();
+            var total = includeCount ? _reportService.AsQueryable().Count() : (int?)null;
+
+            var result = new
+            {
+                ODataCount = total,
+                Skip = s,
+                Top = t,
+                Value = items
+            };
+
+            return Ok(ApiResponse<object>.Ok(result));
         }
 
         // ===============================================

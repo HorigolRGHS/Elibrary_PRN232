@@ -18,7 +18,7 @@ namespace Elib.Activity.Service.Consumers
         {
             var msg = context.Message;
 
-            Console.WriteLine($"[ReportResolvedConsumer] 📨 Received ReportResolved event for ReportId={msg.ReportId}");
+            Console.WriteLine($"[ReportResolvedConsumer] Received ReportResolved event for ReportId={msg.ReportId}");
             Console.WriteLine($"[ReportResolvedConsumer] Details => ResolvedBy={msg.ResolvedBy}, Title=\"{msg.ReportTitle}\"");
 
             try
@@ -38,16 +38,16 @@ namespace Elib.Activity.Service.Consumers
 
                 if (result.Success)
                 {
-                    Console.WriteLine($"[ReportResolvedConsumer] ✅ Notification created for ReportId={msg.ReportId}, CreatedBy={msg.ResolvedBy}");
+                    Console.WriteLine($"[ReportResolvedConsumer] Notification created for ReportId={msg.ReportId}, CreatedBy={msg.ResolvedBy}");
                 }
                 else
                 {
-                    Console.WriteLine($"[ReportResolvedConsumer] ⚠️ Failed to create notification: {result.Message}");
+                    Console.WriteLine($"[ReportResolvedConsumer] Failed to create notification: {result.Message}");
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[ReportResolvedConsumer] ❌ Error while handling ReportId={msg.ReportId}: {ex.Message}");
+                Console.WriteLine($"[ReportResolvedConsumer] Error while handling ReportId={msg.ReportId}: {ex.Message}");
             }
         }
     }
