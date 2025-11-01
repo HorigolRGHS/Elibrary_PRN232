@@ -39,7 +39,7 @@ namespace Elib.Auth.Service.Controllers
             if (options.Filter != null)
                 filteredQuery = options.Filter.ApplyTo(filteredQuery, querySettings);
 
-          
+
             if (options.OrderBy != null)
                 filteredQuery = options.OrderBy.ApplyTo(filteredQuery, querySettings);
 
@@ -47,7 +47,7 @@ namespace Elib.Auth.Service.Controllers
 
             var totalCount = await typedQuery.CountAsync();
 
-      
+
             if (options.Skip != null)
                 filteredQuery = options.Skip.ApplyTo(typedQuery, querySettings);
             if (options.Top != null)
@@ -108,7 +108,7 @@ namespace Elib.Auth.Service.Controllers
         }
 
         [HttpGet("{email}")]
-        public async Task<ActionResult<ApiResponse<User>>> GetByEmai(string email)
+        public async Task<ActionResult<ApiResponse<User>>> GetByEmail(string email)
         {
             var result = await _userService.GetByEmailAsync(email);
             if (!result.Success) return NotFound(result);

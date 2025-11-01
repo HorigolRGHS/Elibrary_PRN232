@@ -12,6 +12,9 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Elib.Catalog.Service", "Elib.Catalog.Service\Elib.Catalog.Service.csproj", "{9FA39AAC-C856-4102-95F5-2CE73149DA11}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Gateway", "Gateway", "{276AA0E9-FF08-45E1-8561-CBB2A5554721}"
+	ProjectSection(SolutionItems) = preProject
+		C:\Users\R.G.H.S\Downloads\appsettings.json = C:\Users\R.G.H.S\Downloads\appsettings.json
+	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Elib.Storage.Service", "Elib.Storage.Service\Elib.Storage.Service.csproj", "{7D803728-DE1E-49B3-AFBB-87087B5B47DC}"
 EndProject
