@@ -41,7 +41,7 @@ namespace Elib.Auth.Service.Services
                 return ApiResponse<LoginResponseDTO>.Fail("Account not found!");
             } else if (!user.Active)
             {
-                return ApiResponse<LoginResponseDTO>.Fail("Your account has been banned!");
+                return ApiResponse<LoginResponseDTO>.Fail("Your account has been banned or is inactive!");
             }
 
 
@@ -100,7 +100,7 @@ namespace Elib.Auth.Service.Services
             await _users.AddAsync(entity);
             await _users.SaveChangesAsync();
 
-            var baseUrl = _config["AuthService:FrontEndUrl"] ?? "https://localhost:3000";
+            var baseUrl = _config["AuthService:FrontEndUrl"] ?? "http://localhost:3000";
             var confirmKey = _config["AuthService:ConfirmKey"];
             var token = BCrypt.Net.BCrypt.HashPassword(entity.CreatedDate + confirmKey); 
             var confirmUrl = $"{baseUrl}/confirm-registration?token={token}&email={entity.Email}";
@@ -196,7 +196,7 @@ namespace Elib.Auth.Service.Services
 
             var rawToken = handler.WriteToken(token);
 
-            var baseUrl = _config["AuthService:FrontEndUrl"] ?? "https://localhost:3000";
+            var baseUrl = _config["AuthService:FrontEndUrl"] ?? "http://localhost:3000";
             var link = $"{baseUrl}/reset-password?token={Uri.EscapeDataString(rawToken)}&email={Uri.EscapeDataString(user.Email)}";
             var subject = "Reset your password - EMC Library";
             var body = $@"
@@ -214,7 +214,10 @@ namespace Elib.Auth.Service.Services
                     <hr style='margin:24px 0;border:none;border-top:1px solid #ddd;'/>
                     <p style='font-size:12px;color:#999;text-align:center;'>© {DateTime.UtcNow.Year} EMC Library. All rights reserved.</p>
                 </div>";
-            try { _ = Task.Run(() => _email.SendEmailAsync(user.Email, subject, body)); } catch { }
+            try { _ = Task.Run(() => _email.SendEmailAsync(user.Email, subject, body)); }
+            catch {
+                return ApiResponse<string>.Fail("Failed to send reset email. Please try again later.");
+            }
 
 
             return ApiResponse<string>.Ok(null, "Reset link has been sent to your email.");

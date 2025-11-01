@@ -50,7 +50,17 @@ export default function LoginIndex() {
       }
 
       toast.success("Login successful 🎉", { toastId: "login-success" });
-      router.push("/");
+      // if user is admin, redirect to dashboard
+      try {
+        const role = result?.data?.user?.role?.toString().toLowerCase();
+        if (role === "admin") {
+          router.push("/dashboard");
+        } else {
+          router.push("/");
+        }
+      } catch (e) {
+        router.push("/");
+      }
     } catch (err: any) {
       const msg =
         err?.response?.data?.message ||

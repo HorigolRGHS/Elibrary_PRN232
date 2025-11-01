@@ -44,6 +44,7 @@ namespace Elib.Auth.Service.Services
             }
             user.UpdatedDate = DateTime.UtcNow;
             await _userRepo.UpdateAsync(user);
+            await _userRepo.SaveChangesAsync();
             return ApiResponse<string>.Ok(null, "Update user successfully");
         }
 
@@ -53,6 +54,7 @@ namespace Elib.Auth.Service.Services
             if (user == null)
                 return ApiResponse<string>.Fail("User not found");
             await _userRepo.DeleteAsync(user);
+            await _userRepo.SaveChangesAsync();
             return ApiResponse<string>.Ok(null, "Delete user successfully");
         }
 

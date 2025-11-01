@@ -96,17 +96,18 @@ export async function forgotPassword(payload: ForgotPasswordRequestDTO): Promise
 
 export async function resetPassword(payload: ResetPasswordRequestDTO): Promise<ResponseDTO<string>> {
   try{
-    const res = await api.post<ResponseDTO<string>>('/auth/forgot-password', payload);
+    // call the reset endpoint (not the forgot-request endpoint)
+    const res = await api.post<ResponseDTO<string>>('/auth/reset-password', payload);
     if (!res) {
       throw new Error('Empty response from server');
     }
     if (!res.success) {
-      const errMsg = res.message || 'Forgot password failed';
+      const errMsg = res.message || 'Reset password failed';
       throw new Error(errMsg);
     }
     return res;
   } catch (err: any) {
-    const serverMsg = err?.response?.data?.message ?? err?.message ?? 'Forgot password failed';
+    const serverMsg = err?.response?.data?.message ?? err?.message ?? 'Reset password failed';
     throw new Error(serverMsg);
   }
 }
