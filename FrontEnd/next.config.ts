@@ -15,6 +15,7 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  transpilePackages: ['react-pdf', 'pdfjs-dist'],
 };
 
 export default nextConfig;

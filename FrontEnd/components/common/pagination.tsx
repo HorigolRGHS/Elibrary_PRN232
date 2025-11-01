@@ -8,6 +8,7 @@ import {
   PaginationNext,
   PaginationEllipsis,
 } from "@/components/ui/pagination";
+import { PaginationBarProps } from "@/models/interfaces/common";
 
 export const PaginationBar: FC<PaginationBarProps> = ({
   currentPage,

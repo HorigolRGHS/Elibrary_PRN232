@@ -1,16 +1,17 @@
 ﻿using Elib.Activity.Service.Contracts;
-using Elib.Activity.Service.Models;
 using Elib.Activity.Service.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.OData.Query;
+using SharedLibrary.Auths;
 using SharedLibrary.Commons;
-using System.Security.Claims;
 
 namespace Elib.Activity.Service.Controllers
 {
+    /// <summary>
+    /// RESTful API cho Download operations
+    /// Base URL: /api/downloads
+    /// </summary>
     [Route("api/[controller]")]
     [ApiController]
     public class DownloadsController : ControllerBase
@@ -27,67 +28,46 @@ namespace Elib.Activity.Service.Controllers
         }
 
         /// <summary>
-        /// Lịch sử tải của chính user (đã ENRICH từ Catalog). Hỗ trợ OData $skip/$top/$count/$orderby/$filter (áp dụng tối thiểu: skip/top/count).
-        /// GET /odata/Downloads/MyHistory?$skip=0&$top=10&$count=true
+        /// Lịch sử tải của user hiện tại (đã ENRICH từ Catalog với Document info).
+        /// Simple pagination với skip/top/count.
+        /// GET /api/downloads/my-history?skip=0&top=10&includeCount=true
         /// </summary>
-        [HttpGet("MyHistory")]
+        [HttpGet("my-history")]
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "Admin,Customer")]
         public async Task<IActionResult> GetMyHistory(
-            [FromQuery(Name = "$skip")] int? skip,
-            [FromQuery(Name = "$top")] int? top,
-            [FromQuery(Name = "$count")] bool? count,
+            [FromQuery] int? skip,
+            [FromQuery] int? top,
+            [FromQuery] bool? includeCount,
             CancellationToken ct)
         {
-            var userId = GetUserIdOrThrow(User);
+            var userId = User.GetUserIdOrThrow();
 
             var s = skip.GetValueOrDefault(0);
             var t = top.GetValueOrDefault(10);
-            if (t <= 0) t = 10;           // tránh chia cho 0
+            if (t <= 0) t = 10;
             if (s < 0) s = 0;
 
-            var includeCount = count.GetValueOrDefault(true);
+            var doCount = includeCount.GetValueOrDefault(true);
 
-            var result = await _service.GetUserDownloadsAsync(userId, s, t, includeCount, ct);
+            var result = await _service.GetUserDownloadsAsync(userId, s, t, doCount, ct);
 
-            var data = new MyHistoryData
-            {
-                ODataCount = includeCount ? result.TotalCount : (int?)null,
-                Page = result.Page,
-                PageSize = result.PageSize,
-                Value = result.Items
-            };
-
-            return Ok(ApiResponse<MyHistoryData>.Ok(data));
+            return Ok(ApiResponse<PagedResult<Elib.Activity.Service.DTOs.UserDownloadHistoryResponseDTO>>.Ok(result));
         }
 
-
-
-        //public record RecordDownloadRequest(int DocumentId);
-
-        ///// <summary>
-        ///// Ghi nhận lượt tải của user hiện tại.
-        ///// POST /odata/Downloads/Record
-        ///// Body: { "documentId": 123 }
-        ///// </summary>
-        //[HttpPost("Record/{documentId:int}")]
-        //[Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "Admin,Customer")]
-        //public async Task<IActionResult> RecordByRoute([FromRoute] int documentId, CancellationToken ct)
-        //{
-        //    if (documentId <= 0) return BadRequest("documentId must be > 0.");
-
-        //    var userId = GetUserIdOrThrow(User);
-        //    await _service.RecordUserDownloadAsync(documentId, userId, DateTime.UtcNow, ct);
-        //    return Ok(ApiResponse<string>.Ok(null, "Recorded"));
-        //}
-
-        private static int GetUserIdOrThrow(ClaimsPrincipal user)
+        /// <summary>
+        /// Get top downloaded documents (with enriched info)
+        /// GET /api/downloads/top?take=10&from=2025-01-01&to=2025-12-31
+        /// </summary>
+        [HttpGet("top")]
+        [AllowAnonymous]
+        public async Task<IActionResult> GetTopDownloads(
+            [FromQuery] int? take,
+            [FromQuery] DateTime? from,
+            [FromQuery] DateTime? to,
+            CancellationToken ct)
         {
-            var raw = user.FindFirstValue("user_id")
-                   ?? user.FindFirstValue(ClaimTypes.NameIdentifier)
-                   ?? user.FindFirstValue("sub");
-            if (string.IsNullOrWhiteSpace(raw) || !int.TryParse(raw, out var id))
-                throw new UnauthorizedAccessException("Invalid or missing user id claim.");
-            return id;
+            // TODO: Implement GetTopDownloadsAsync in service if needed
+            return Ok(ApiResponse<object>.Ok(new { message = "Coming soon" }));
         }
     }
 }

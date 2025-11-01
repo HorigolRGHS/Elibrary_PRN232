@@ -25,8 +25,8 @@ namespace Elib.Catalog.Service.Profiles
                 .ForMember(dest => dest.Status, opt => opt.MapFrom(src => "Pending"))
                 .ForMember(dest => dest.ViewCount, opt => opt.MapFrom(src => 0))
                 .ForMember(dest => dest.DownloadCount, opt => opt.MapFrom(src => 0))
-                .ForMember(dest => dest.CreatedDate, opt => opt.MapFrom(src => DateTime.UtcNow))
-                .ForMember(dest => dest.CreatedBy, opt => opt.Ignore()) 
+                .ForMember(dest => dest.CreatedDate, opt => opt.Ignore()) // Set manually in service
+                .ForMember(dest => dest.CreatedBy, opt => opt.Ignore()) // Set from bearer token in service
                 .ForMember(dest => dest.UpdatedDate, opt => opt.Ignore())
                 .ForMember(dest => dest.DeletedDate, opt => opt.Ignore())
                 .ForMember(dest => dest.DeletedBy, opt => opt.Ignore())
@@ -59,7 +59,7 @@ namespace Elib.Catalog.Service.Profiles
                     opt => opt.MapFrom(src => src.Category != null ? src.Category.CategoryName : null))
                 .ForMember(dest => dest.SubjectName,
                     opt => opt.MapFrom(src => src.Subject != null ? src.Subject.SubjectName : null))
-                .ForMember(dest => dest.CreatedByUsername, opt => opt.Ignore()); 
+                .ForMember(dest => dest.CreatedByFullname, opt => opt.Ignore()); 
         }
     }
 }

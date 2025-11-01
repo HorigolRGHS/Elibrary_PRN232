@@ -11,6 +11,7 @@ using Elib.Activity.Service.DTOs;
 using SharedLibrary.Commons;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.OData.Query;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 
 namespace Elib.Activity.Service.Controllers
 {
@@ -27,24 +28,48 @@ namespace Elib.Activity.Service.Controllers
         }
 
         // GET: api/Notifications/odata?$filter=Type eq 'System'&$orderby=CreatedDate desc&$top=5&$skip=0&$count=true
-        [HttpGet("odata")]
-        [EnableQuery] 
-        [Authorize(Roles = "Admin,Customer")]
-        public IActionResult GetNotificationsOData()
+        [HttpGet]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "Admin,Customer")]
+        public IActionResult GetNotifications(
+                           [FromQuery(Name = "$skip")] int? skip,
+                           [FromQuery(Name = "$top")] int? top,
+                           [FromQuery(Name = "$count")] bool? count)
         {
-            var query = _notificationService.AsQueryable();
-            return Ok(query);
+            var s = skip.GetValueOrDefault(0);
+            var t = top.GetValueOrDefault(10);
+            if (t <= 0) t = 10;
+            if (s < 0) s = 0;
+
+            var includeCount = count.GetValueOrDefault(true);
+
+            var query = _notificationService.AsQueryable()
+                .OrderByDescending(n => n.CreatedDate)
+                .Skip(s)
+                .Take(t);
+
+            var items = query.ToList();
+            var total = includeCount ? _notificationService.AsQueryable().Count() : (int?)null;
+
+            var result = new
+            {
+                ODataCount = total,
+                Skip = s,
+                Top = t,
+                Value = items
+            };
+
+            return Ok(ApiResponse<object>.Ok(result));
         }
 
-        // GET: api/Notifications
-        [HttpGet]
-        [Authorize(Roles = "Admin,Customer")]
-        public async Task<ActionResult<ApiResponse<PagedResult<NotificationDTO>>>>
-            GetNotifications([FromQuery] NotificationFilterDTO filter)
-        {
-            var result = await _notificationService.GetPagedAsync(filter);
-            return Ok(result);
-        }
+        //// GET: api/Notifications
+        //[HttpGet]
+        //[Authorize(Roles = "Admin,Customer")]
+        //public async Task<ActionResult<ApiResponse<PagedResult<NotificationDTO>>>>
+        //    GetNotifications([FromQuery] NotificationFilterDTO filter)
+        //{
+        //    var result = await _notificationService.GetPagedAsync(filter);
+        //    return Ok(result);
+        //}
 
         // GET: api/Notifications/5
         [HttpGet("{id}")]

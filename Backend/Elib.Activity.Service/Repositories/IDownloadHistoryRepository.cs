@@ -5,7 +5,9 @@ namespace Elib.Activity.Service.Repositories
 {
     public interface IDownloadHistoryRepository
     {
+        IQueryable<DownloadHistory> GetAll();
         IQueryable<DownloadHistory> QueryByUser(int userId);
+        Task<DownloadHistory?> GetByIdAsync(int downloadId, CancellationToken ct = default);
         Task RecordUserDownload(DownloadHistory download, CancellationToken ct = default);
 
         Task<List<(int DocumentId, int Total, DateTime LastDownloadedDate)>> GetTopDownloadsAsync(

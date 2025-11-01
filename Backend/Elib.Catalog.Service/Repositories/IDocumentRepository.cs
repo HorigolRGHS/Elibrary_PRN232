@@ -11,5 +11,7 @@ namespace Elib.Catalog.Service.Repositories
         IQueryable<Document> GetPublicDocumentsQueryable();
         Task<bool> ApproveAsync(int documentId, int approvedBy);
         Task<bool> RejectAsync(int documentId, int rejectedBy, string? reason = null);
+        Task<bool> IncreaseView(int documentId, CancellationToken ct = default);
+        Task<bool> IncreaseDownload(int documentId, CancellationToken ct = default);
     }
 }
