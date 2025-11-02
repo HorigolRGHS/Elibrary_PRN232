@@ -6,16 +6,34 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OData.Query;
 using SharedLibrary.Auths;
 using System.Security.Claims;
+using MassTransit;
+using SharedLibrary.Messages;
 
 namespace Elib.Catalog.Service.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class DocumentsController(IDocumentService service, IViewTrackingService viewTracking, CatalogDb dbcontext) : ControllerBase
+    public class DocumentsController : ControllerBase
     {
-        protected readonly IDocumentService _service = service;
-        protected readonly IViewTrackingService _viewTracking = viewTracking;
-        protected readonly CatalogDb _dbcontext = dbcontext;
+        protected readonly IDocumentService _service;
+        protected readonly IViewTrackingService _viewTracking;
+        protected readonly CatalogDb _dbcontext;
+        protected readonly IPublishEndpoint _publish;
+        protected readonly ILogger<DocumentsController> _logger;
+
+        public DocumentsController(
+            IDocumentService service, 
+            IViewTrackingService viewTracking, 
+            CatalogDb dbcontext,
+            IPublishEndpoint publish,
+            ILogger<DocumentsController> logger)
+        {
+            _service = service;
+            _viewTracking = viewTracking;
+            _dbcontext = dbcontext;
+            _publish = publish;
+            _logger = logger;
+        }
 
         [HttpGet]
         [AllowAnonymous]
@@ -74,10 +92,11 @@ namespace Elib.Catalog.Service.Controllers
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
             
-            // Get user ID from bearer token claims
+            // Get user ID and role from bearer token claims
             var userId = User.GetUserIdOrThrow();
+            var userRole = User.FindFirstValue(ClaimTypes.Role);
             
-            var resp = await _service.CreateAsync(dto, userId);
+            var resp = await _service.CreateAsync(dto, userId, userRole);
             return Ok(resp);
         }
 
@@ -115,5 +134,55 @@ namespace Elib.Catalog.Service.Controllers
             return resp.Success ? Ok(resp) : BadRequest(resp);
         }
 
+        /// <summary>
+        /// Track document download and publish event.
+        /// Call this endpoint before redirecting to Storage Service.
+        /// POST /api/documents/{id}/download
+        /// </summary>
+        [HttpPost("{id:int}/download")]
+        [Authorize]
+        public async Task<IActionResult> TrackDownload(int id)
+        {
+            // Verify document exists and is accessible
+            var doc = await _service.GetByIdAsync(id);
+            if (!doc.Success)
+                return NotFound(doc);
+
+            var userId = User.GetUserIdOrThrow();
+
+            // Publish download event
+            try
+            {
+                await _publish.Publish(new DocumentDownloaded(
+                    DocumentId: id,
+                    UserId: userId,
+                    FileName: doc.Data?.FileUrl ?? "",
+                    DownloadedAt: DateTime.UtcNow
+                ));
+
+                _logger.LogInformation(
+                    "Download tracked: DocId={DocId}, UserId={UserId}",
+                    id, userId);
+
+                return Ok(SharedLibrary.Commons.ApiResponse<object>.Ok(
+                    new { documentId = id, fileUrl = doc.Data?.FileUrl },
+                    "Download tracked successfully"
+                ));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex,
+                    "Failed to track download for DocId={DocId}, UserId={UserId}",
+                    id, userId);
+
+                // Return success anyway - don't block download
+                return Ok(SharedLibrary.Commons.ApiResponse<object>.Ok(
+                    new { documentId = id, fileUrl = doc.Data?.FileUrl },
+                    "Download proceeding (tracking failed)"
+                ));
+            }
+        }
+
     }
 }
+

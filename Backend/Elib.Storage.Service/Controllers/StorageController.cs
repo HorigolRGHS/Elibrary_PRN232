@@ -134,7 +134,6 @@ namespace Elib.Storage.Service.Controllers
         [SwaggerResponse(404, Type = typeof(ApiResponse<object>))]
         [SwaggerResponse(500, Type = typeof(ApiResponse<object>))]
         public async Task<IActionResult> DownloadFile(
-            [FromQuery] int docId,
             [FromQuery] string fileName,
             [FromQuery] string mode = "full",
             [FromQuery] string? disposition = null)
@@ -147,11 +146,10 @@ namespace Elib.Storage.Service.Controllers
                 Response.Headers["Accept-Ranges"] = "bytes";
 
                 var isPreview = string.Equals(mode, "preview", StringComparison.OrdinalIgnoreCase);
-                var userName = User.Identity?.Name ?? "Guest";
 
                 if (isPreview)
                 {
-                    // ⬇️ Preview KHÔNG yêu cầu JWT
+                    // Preview doesn't require authentication
                     var (srcStream, _) = await _blobService.DownloadFileStreamAsync(fileName);
                     if (srcStream == null)
                         return NotFound(ApiResponse<object>.Fail("File not found"));
@@ -177,10 +175,9 @@ namespace Elib.Storage.Service.Controllers
                 }
                 else
                 {
+                    // Full download requires authentication
                     if (!(User?.Identity?.IsAuthenticated ?? false))
                         return Unauthorized(ApiResponse<object>.Fail("Authentication required"));
-
-                    var userId = User.GetUserIdOrThrow();
 
                     var (stream, contentType) = await _blobService.DownloadFileStreamAsync(fileName);
                     if (stream == null)
@@ -193,22 +190,9 @@ namespace Elib.Storage.Service.Controllers
                     };
                     Response.Headers[HeaderNames.ContentDisposition] = cd.ToString();
 
-                    Response.OnCompleted(async () =>
-                    {
-                        try
-                        {
-                            await _publish.Publish(new DocumentDownloaded(
-                                DocumentId: docId,
-                                UserId: userId,
-                                FileName: fileName,
-                                DownloadedAt: DateTime.UtcNow
-                            ));
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger.LogError(ex, "Publish DocumentDownloaded failed for {File}", fileName);
-                        }
-                    });
+                    _logger.LogInformation(
+                        "File downloaded: File={File}, User={User}",
+                        fileName, User.Identity?.Name ?? "Unknown");
 
                     return File(stream, contentType ?? "application/pdf", enableRangeProcessing: true);
                 }

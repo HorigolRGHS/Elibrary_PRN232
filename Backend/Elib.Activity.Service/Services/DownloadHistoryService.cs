@@ -59,6 +59,18 @@ using SharedLibrary.Commons;
 
         public async Task RecordUserDownloadAsync(int documentId, int? userId, DateTime when, CancellationToken ct = default)
         {
+            // Validate inputs
+            if (documentId <= 0)
+                throw new ArgumentException("DocumentId must be greater than 0", nameof(documentId));
+
+            // Ensure timestamp is valid
+            if (when == default)
+                when = DateTime.UtcNow;
+            
+            // Prevent future dates
+            if (when > DateTime.UtcNow.AddMinutes(5))
+                when = DateTime.UtcNow;
+
             await _repo.RecordUserDownload(new Models.DownloadHistory
             {
                 DocumentId = documentId,

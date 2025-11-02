@@ -35,6 +35,17 @@ namespace Elib.Activity.Service.Repositories
 
         public async Task RecordUserDownload(DownloadHistory download, CancellationToken ct = default)
         {
+            // Validate input
+            if (download == null)
+                throw new ArgumentNullException(nameof(download));
+            
+            if (download.DocumentId <= 0)
+                throw new ArgumentException("DocumentId must be greater than 0", nameof(download));
+
+            // Ensure timestamp is set
+            if (download.DownloadedDate == default)
+                download.DownloadedDate = DateTime.UtcNow;
+
             await _context.DownloadHistories.AddAsync(download, ct);
             await _context.SaveChangesAsync(ct);
         }

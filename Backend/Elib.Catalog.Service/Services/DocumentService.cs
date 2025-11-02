@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using SharedLibrary.Commons;
 using MassTransit;
 using SharedLibrary.Messages;
+using Microsoft.Extensions.Logging;
 
 namespace Elib.Catalog.Service.Services
 {
@@ -15,15 +16,18 @@ namespace Elib.Catalog.Service.Services
         private readonly IDocumentRepository _repository;
         private readonly IMapper _mapper;
         private readonly IRequestClient<UserFullNamesRequest> _userFullNamesClient;
+        private readonly ILogger<DocumentService> _logger;
 
         public DocumentService(
             IDocumentRepository repository, 
             IMapper mapper,
-            IRequestClient<UserFullNamesRequest> userFullNamesClient)
+            IRequestClient<UserFullNamesRequest> userFullNamesClient,
+            ILogger<DocumentService> logger)
         {
             _repository = repository;
             _mapper = mapper;
             _userFullNamesClient = userFullNamesClient;
+            _logger = logger;
         }
 
         public async Task<ApiResponse<string>> ApproveAsync(int id, ApproveDocumentDTO req, int userId)
@@ -44,12 +48,21 @@ namespace Elib.Catalog.Service.Services
             }
         }
 
-        public async Task<ApiResponse<string>> CreateAsync(CreateDocumentDTO entity, int userId)
+        public async Task<ApiResponse<string>> CreateAsync(CreateDocumentDTO entity, int userId, string? userRole)
         {
             var entityr = _mapper.Map<Document>(entity);
 
             entityr.CreatedBy = userId;
             entityr.CreatedDate = DateTime.UtcNow;
+            
+            if (string.Equals(userRole, "Admin", StringComparison.OrdinalIgnoreCase))
+            {
+                entityr.Status = "Accepted";
+            }
+            else
+            {
+                entityr.Status = "Pending";
+            }
 
             await _repository.AddAsync(entityr);
             await _repository.SaveChangesAsync();
@@ -108,7 +121,7 @@ namespace Elib.Catalog.Service.Services
             {
                 var response = await _userFullNamesClient.GetResponse<UserFullNamesResponse>(
                     new UserFullNamesRequest(Guid.NewGuid(), userIds),
-                    timeout: RequestTimeout.After(s: 5)
+                    timeout: RequestTimeout.After(s: 3)
                 );
 
                 var userFullNames = response.Message.UserFullNames;
@@ -119,8 +132,19 @@ namespace Elib.Catalog.Service.Services
                 if (dto.DeletedBy.HasValue && userFullNames.TryGetValue(dto.DeletedBy.Value, out var deletedByName))
                     dto.DeletedByUsername = deletedByName;
             }
-            catch (RequestTimeoutException)
+            catch (RequestTimeoutException ex)
             {
+                _logger.LogWarning(ex, 
+                    "RabbitMQ timeout while fetching user names for document {DocumentId}. Returning data without user names.", 
+                    id);
+                // Continue without user names
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, 
+                    "Failed to fetch user names via RabbitMQ for document {DocumentId}. Returning data without user names.", 
+                    id);
+                // Continue without user names
             }
 
             return ApiResponse<AdminDocumentItemDTO>.Ok(dto);
@@ -221,7 +245,7 @@ namespace Elib.Catalog.Service.Services
             {
                 var response = await _userFullNamesClient.GetResponse<UserFullNamesResponse>(
                     new UserFullNamesRequest(Guid.NewGuid(), userIds),
-                    timeout: RequestTimeout.After(s: 5)
+                    timeout: RequestTimeout.After(s: 3)
                 );
 
                 var userFullNames = response.Message.UserFullNames;
@@ -233,9 +257,22 @@ namespace Elib.Catalog.Service.Services
                         doc.CreatedByFullname = fullName;
                     }
                 }
+                
+                _logger.LogDebug("Successfully enriched {Count} documents with user names", documents.Count());
             }
-            catch (RequestTimeoutException)
+            catch (RequestTimeoutException ex)
             {
+                _logger.LogWarning(ex, 
+                    "RabbitMQ timeout while fetching user names for {Count} documents. Returning data without user names.", 
+                    documents.Count());
+                // Continue without user names
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, 
+                    "Failed to fetch user names via RabbitMQ for {Count} documents. Returning data without user names.", 
+                    documents.Count());
+                // Continue without user names
             }
         }
     }
