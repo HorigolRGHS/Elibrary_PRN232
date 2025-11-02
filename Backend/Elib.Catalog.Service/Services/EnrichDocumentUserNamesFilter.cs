@@ -6,9 +6,6 @@ using Microsoft.AspNetCore.OData.Query;
 
 namespace Elib.Catalog.Service.Controllers
 {
-    /// <summary>
-    /// Action filter to enrich AdminDocumentListDTO with user full names after OData query execution
-    /// </summary>
     public class EnrichDocumentUserNamesFilter : IAsyncResultFilter
     {
         private readonly IDocumentService _documentService;

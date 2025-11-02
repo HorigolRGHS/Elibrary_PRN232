@@ -122,6 +122,13 @@ builder.Services.AddMassTransit(cfg =>
     });
 });
 
+builder.Services.Configure<MassTransitHostOptions>(opts =>
+{
+    opts.WaitUntilStarted = false;
+    opts.StartTimeout = TimeSpan.FromSeconds(5);
+    opts.StopTimeout = TimeSpan.FromSeconds(5);
+});
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddJwtAuth(builder.Configuration);
