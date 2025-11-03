@@ -111,7 +111,8 @@ namespace Elib.Interaction.Service.Services
                     entity.ReportId,
                     resolvedBy,
                     entity.Reason.Length > 80 ? entity.Reason[..80] + "..." : entity.Reason,
-                    DateTime.UtcNow
+                    DateTime.UtcNow,
+                    entity.CreatedBy ?? 0
                 );
 
                 Console.WriteLine($"[ReportService] 📨 Publishing ReportResolved event for ReportId={message.ReportId}");

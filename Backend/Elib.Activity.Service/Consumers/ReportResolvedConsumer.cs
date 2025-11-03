@@ -19,30 +19,28 @@ namespace Elib.Activity.Service.Consumers
             var msg = context.Message;
 
             Console.WriteLine($"[ReportResolvedConsumer] Received ReportResolved event for ReportId={msg.ReportId}");
-            Console.WriteLine($"[ReportResolvedConsumer] Details => ResolvedBy={msg.ResolvedBy}, Title=\"{msg.ReportTitle}\"");
+            Console.WriteLine($"[ReportResolvedConsumer] Details => ResolvedBy={msg.ResolvedBy}, ReportedBy={msg.ReportedBy}, Title=\"{msg.ReportTitle}\"");
 
             try
             {
-         
-                var dto = new NotificationCreateDTO
+                var dto = new NotificationCreateCustomDTO
                 {
-                    Title = "Report resolved",
-                    Content = $"The report for this document has been successfully reviewed and addressed based on the provided reasons.\n\nReason: {msg.ReportTitle}",
-                    Type = "System",
+                    Title = "Your report has been resolved",
+                    Content = $"Your report \"{msg.ReportTitle}\" has been reviewed and resolved by the admin. Thank you for your feedback!",
                     ScheduledDate = DateTime.UtcNow,
-                    CreatedBy = msg.ResolvedBy,
-                    Status = "Sent"
+                    //CreatedBy = msg.ResolvedBy,
+                    RecipientUserIds = new List<int> { msg.ReportedBy }
                 };
 
-                var result = await _notificationService.CreateAsync(dto);
+                var result = await _notificationService.CreateCustomAsync(dto);
 
                 if (result.Success)
                 {
-                    Console.WriteLine($"[ReportResolvedConsumer] Notification created for ReportId={msg.ReportId}, CreatedBy={msg.ResolvedBy}");
+                    Console.WriteLine($"[ReportResolvedConsumer]  Custom notification sent to userId={msg.ReportedBy} for ReportId={msg.ReportId}");
                 }
                 else
                 {
-                    Console.WriteLine($"[ReportResolvedConsumer] Failed to create notification: {result.Message}");
+                    Console.WriteLine($"[ReportResolvedConsumer] Failed to send notification: {result.Message}");
                 }
             }
             catch (Exception ex)

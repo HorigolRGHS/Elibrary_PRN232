@@ -21,15 +21,19 @@ namespace Elib.Activity.Service.Controllers
     public class NotificationsController : ControllerBase
     {
         private readonly INotificationService _notificationService;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public NotificationsController(INotificationService notificationService)
+        public NotificationsController(
+            INotificationService notificationService,
+            IHttpContextAccessor httpContextAccessor)
         {
             _notificationService = notificationService;
+            _httpContextAccessor = httpContextAccessor;
         }
 
         // GET: api/Notifications/odata?$filter=Type eq 'System'&$orderby=CreatedDate desc&$top=5&$skip=0&$count=true
         [HttpGet]
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "Admin,Customer")]
+        [Authorize(Roles = "Admin")]
         public IActionResult GetNotifications(
                            [FromQuery(Name = "$skip")] int? skip,
                            [FromQuery(Name = "$top")] int? top,
@@ -70,6 +74,15 @@ namespace Elib.Activity.Service.Controllers
         //    var result = await _notificationService.GetPagedAsync(filter);
         //    return Ok(result);
         //}
+        [HttpGet("me")]
+        [EnableQuery]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "Admin,Customer")]
+        public IActionResult GetNotificationsForHomeOData()
+        {
+            var query = _notificationService.AsQueryableForCurrentUser();
+            return Ok(query);
+        }
+
 
         // GET: api/Notifications/5
         [HttpGet("{id}")]
@@ -147,16 +160,16 @@ namespace Elib.Activity.Service.Controllers
             return Ok(result);
         }
 
-        /// api/Notifications/odata/my?$filter=Status eq 'Sent'&$orderby=CreatedDate desc&$top=10&$skip=0&$count=true
+        ///// api/Notifications/odata/my?$filter=Status eq 'Sent'&$orderby=CreatedDate desc&$top=10&$skip=0&$count=true
 
-        [HttpGet("odata/me")]
-        [EnableQuery]
-        [Authorize(Roles = "Admin,Customer")]
-        public IActionResult GetMyNotificationsOData()
-        {
-            var query = _notificationService.AsQueryableForCurrentUser();
-            return Ok(query);
-        }
+        //[HttpGet("me")]
+        //[EnableQuery]
+        //[Authorize(Roles = "Admin,Customer")]
+        //public IActionResult GetMyNotificationsOData()
+        //{
+        //    var query = _notificationService.AsQueryableForCurrentUser();
+        //    return Ok(query);
+        //}
 
         [HttpPost("custom")]
         [Authorize(Roles = "Admin")]

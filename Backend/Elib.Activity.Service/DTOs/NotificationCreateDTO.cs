@@ -17,7 +17,7 @@ namespace Elib.Activity.Service.DTOs
         [Required]
         public DateTime ScheduledDate { get; set; }
 
-        public int? CreatedBy { get; set; }
+        //public int? CreatedBy { get; set; }
         public string Status { get; set; } = "Pending";
     }
 }

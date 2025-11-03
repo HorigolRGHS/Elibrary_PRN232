@@ -50,17 +50,7 @@ export default function LoginIndex() {
       }
 
       toast.success("Login successful 🎉", { toastId: "login-success" });
-      // if user is admin, redirect to dashboard
-      try {
-        const role = result?.data?.user?.role?.toString().toLowerCase();
-        if (role === "admin") {
-          router.push("/dashboard");
-        } else {
-          router.push("/");
-        }
-      } catch (e) {
-        router.push("/");
-      }
+      router.push("/");
     } catch (err: any) {
       const msg =
         err?.response?.data?.message ||
@@ -81,7 +71,7 @@ export default function LoginIndex() {
           <div className="text-center space-y-4">
             <Image
               onClick={() => router.push("/")}
-              src="https://ik.imagekit.io/i0aiv29ol/EMC%20Library.png?updatedAt=1760115301250"
+              src="/image/BeluLibrary.png"
               alt="E-Library Logo"
               width={240}
               height={240}

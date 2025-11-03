@@ -120,3 +120,8 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Simple hero section used on the home page */
+.herosection {
+  @apply text-4xl sm:text-5xl font-extrabold text-center my-8;
+}

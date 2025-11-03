@@ -11,7 +11,7 @@ import {
   UserPlus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import Image from "next/image";
 import { decodeJwt, normalizeJwt } from "@/lib/utils";
 import { getAuthToken } from "@/api/apiClient";
@@ -25,6 +25,223 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@radix-ui/react-dropdown-menu";
+
+import { api } from "@/api/apiClient";
+
+function NotificationMenu({ isAuthenticated }: { isAuthenticated: boolean }) {
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [items, setItems] = useState<any[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [activeId, setActiveId] = useState<number | null>(null);
+
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
+  const unreadCount = items.filter((i) => !i.isViewed).length;
+
+  // Helper: format time since scheduledDate (fallback to createdDate)
+  const timeAgo = (item: any) => {
+    const dt = item?.scheduledDate || item?.createdDate;
+    if (!dt) return "";
+    const then = new Date(dt).getTime();
+    const now = Date.now();
+    const sec = Math.floor((now - then) / 1000);
+    if (sec < 60) return `${sec}s`;
+    const min = Math.floor(sec / 60);
+    if (min < 60) return `${min}m`;
+    const hr = Math.floor(min / 60);
+    if (hr < 24) return `${hr}h`;
+    const days = Math.floor(hr / 24);
+    return `${days}d`;
+  };
+
+  const badgeForType = (type: string | undefined) => {
+    switch ((type || "").toLowerCase()) {
+      case "system":
+        return "bg-red-100 text-red-800";
+      case "customer":
+        return "bg-blue-100 text-blue-800";
+      case "custom":
+        return "bg-emerald-100 text-emerald-800";
+      default:
+        return "bg-gray-100 text-gray-800";
+    }
+  };
+
+  const accentForType = (type: string | undefined) => {
+    switch ((type || "").toLowerCase()) {
+      case "system":
+        return "bg-red-500";
+      case "customer":
+        return "bg-blue-500";
+      case "custom":
+        return "bg-emerald-500";
+      default:
+        return "bg-gray-400";
+    }
+  };
+
+  useEffect(() => {
+    // don't fetch if dropdown closed or user is not authenticated
+    if (!open || !isAuthenticated) return;
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+    console.log("[NotificationMenu] fetching /activity/api/Notifications/me");
+    api
+      .get<any>("/activity/api/Notifications/me")
+      .then((res) => {
+        const data: any = res;
+        const list = Array.isArray(data) ? data : data?.value || [];
+        if (!cancelled) setItems(list);
+        console.log("[NotificationMenu] fetched", list);
+      })
+      .catch((err: any) => {
+        console.error("[NotificationMenu] fetch error", err);
+        if (!cancelled) {
+          setItems([]);
+          setError(
+            (err && (err.message || err.toString())) || "Failed to load"
+          );
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [open, isAuthenticated]);
+
+  const markAsViewed = async (id: number) => {
+    try {
+      await api.post(`/activity/api/Notifications/${id}/view`);
+      setItems((prev) =>
+        prev.map((n) =>
+          n.notificationId === id
+            ? { ...n, isViewed: true, viewedDate: new Date().toISOString() }
+            : n
+        )
+      );
+    } catch (e) {
+      toast.error("Could not mark notification as viewed");
+    }
+  };
+
+  if (!mounted) return null; // avoid SSR/client mismatch
+
+  return (
+    <DropdownMenu open={open} onOpenChange={setOpen}>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="relative hover:bg-gray-100"
+        >
+          <Bell className="w-5 h-5 text-gray-600" />
+          {unreadCount > 0 && (
+            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
+              {unreadCount}
+            </span>
+          )}
+        </Button>
+      </DropdownMenuTrigger>
+
+      <DropdownMenuContent
+        align="end"
+        sideOffset={8}
+        className="w-80 p-1 shadow-lg border bg-white"
+      >
+        <div className="max-h-64 overflow-auto">
+          {loading ? (
+            <div className="p-4 text-sm">Loading...</div>
+          ) : error ? (
+            <div className="p-4 text-sm text-red-600">Error: {error}</div>
+          ) : items.length === 0 ? (
+            <div className="p-4 text-sm text-center">No notifications</div>
+          ) : (
+            items.map((n) => (
+              <div
+                key={n.notificationId}
+                onClick={async () => {
+                  if (!n.isViewed) await markAsViewed(n.notificationId);
+                  setActiveId((prev) =>
+                    prev === n.notificationId ? null : n.notificationId
+                  );
+                }}
+                className={`relative flex gap-3 items-start p-3 cursor-pointer rounded-md transition-shadow ${
+                  n.isViewed ? "bg-white opacity-90" : "bg-white shadow-sm"
+                } hover:shadow-md`}
+              >
+                {/* left accent bar */}
+                <div
+                  className={`absolute left-0 top-0 bottom-0 w-1 rounded-l-md ${accentForType(
+                    n.type
+                  )}`}
+                />
+
+                {/* content */}
+                <div className="flex-1 pl-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={`px-2 py-0.5 text-xs font-semibold rounded-full ${badgeForType(
+                          n.type
+                        )}`}
+                      >
+                        {n.type || "Unknown"}
+                      </div>
+                      <div className="text-sm font-medium text-gray-800 leading-tight">
+                        {n.title}
+                      </div>
+                    </div>
+                    <div className="text-xs text-gray-400 whitespace-nowrap">
+                      {timeAgo(n)}
+                    </div>
+                  </div>
+
+                  <div className="text-sm text-gray-600 mt-1 line-clamp-2">
+                    {n.content}
+                  </div>
+
+                  {activeId === n.notificationId && (
+                    <div className="mt-3 text-sm text-gray-700 bg-gray-50 p-3 rounded-md border">
+                      <div className="whitespace-pre-wrap">{n.content}</div>
+                      <div className="text-xs text-gray-400 mt-2">
+                        Sent:{" "}
+                        {new Date(
+                          n.scheduledDate || n.createdDate
+                        ).toLocaleString()}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* unread dot */}
+                {!n.isViewed && (
+                  <div className="w-2 h-2 rounded-full bg-red-500 mt-1 flex-shrink-0" />
+                )}
+              </div>
+            ))
+          )}
+        </div>
+
+        <DropdownMenuSeparator />
+        <div className="px-2 py-1 text-right">
+          <button
+            onClick={() => router.push("/notifications")}
+            className="text-sm text-indigo-600 hover:underline"
+          >
+            See all
+          </button>
+        </div>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
 
 export function SimpleHeader({ title }: { title?: string }) {
   const router = useRouter();
@@ -80,7 +297,7 @@ export function UserHeader() {
         <div className="flex items-center gap-3">
           <Image
             onClick={() => router.push("/")}
-            src="https://ik.imagekit.io/i0aiv29ol/EMC%20Library.png?updatedAt=1760115301250"
+            src="/image/BeluLibrary.png"
             alt="logo"
             width={62}
             height={62}
@@ -104,15 +321,7 @@ export function UserHeader() {
         {/* --- Right: Notification + User Menu --- */}
         <div className="flex items-center gap-3 shrink-0">
           {isAuthenticated && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="relative hover:bg-gray-100"
-              onClick={() => router.push("/notifications")}
-            >
-              <Bell className="w-5 h-5 text-gray-600" />
-              <span className="absolute top-1 right-1 bg-red-500 text-white text-xs w-3 h-3 rounded-full flex items-center justify-center"></span>
-            </Button>
+            <NotificationMenu isAuthenticated={isAuthenticated} />
           )}
 
           {/* Dropdown Menu */}
