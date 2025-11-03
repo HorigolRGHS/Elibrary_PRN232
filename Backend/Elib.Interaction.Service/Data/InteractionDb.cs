@@ -25,7 +25,7 @@ namespace Elib.Interaction.Service.Data
             {
                 entity.HasKey(e => e.CommentId).HasName("PK__Comment__C3B4DFAAFF8AB0F2");
 
-                entity.ToTable("Comment", "interaction_svc");
+                entity.ToTable("Comment");
 
                 entity.HasIndex(e => e.CreatedDate, "IX_Comment_CreatedDate");
 
@@ -44,7 +44,7 @@ namespace Elib.Interaction.Service.Data
             {
                 entity.HasKey(e => e.RatingId).HasName("PK__Rating__FCCDF85CF5554654");
 
-                entity.ToTable("Rating", "interaction_svc");
+                entity.ToTable("Rating");
 
                 entity.HasIndex(e => e.DocumentId, "IX_Rating_DocumentID");
 
@@ -63,7 +63,7 @@ namespace Elib.Interaction.Service.Data
             {
                 entity.HasKey(e => e.ReportId).HasName("PK__Report__D5BD48E52558E370");
 
-                entity.ToTable("Report", "interaction_svc");
+                entity.ToTable("Report");
 
                 entity.HasIndex(e => e.DocumentId, "IX_Report_DocumentID");
 

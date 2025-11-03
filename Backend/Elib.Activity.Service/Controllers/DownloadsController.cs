@@ -27,23 +27,21 @@ namespace Elib.Activity.Service.Controllers
             _logger = logger;
         }
 
-        /// <summary>
-        /// Lịch sử tải của user hiện tại (đã ENRICH từ Catalog với Document info).
-        /// Simple pagination với skip/top/count.
-        /// GET /api/downloads/my-history?skip=0&top=10&includeCount=true
-        /// </summary>
         [HttpGet("my-history")]
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "Admin,Customer")]
         public async Task<IActionResult> GetMyHistory(
             [FromQuery] int? skip,
+            [FromQuery(Name = "$skip")] int? odataSkip,
             [FromQuery] int? top,
+            [FromQuery(Name = "$top")] int? odataTop,
             [FromQuery] bool? includeCount,
             CancellationToken ct)
         {
             var userId = User.GetUserIdOrThrow();
 
-            var s = skip.GetValueOrDefault(0);
-            var t = top.GetValueOrDefault(10);
+            // Prefer OData-style parameters if provided, fallback to plain names
+            var s = (odataSkip ?? skip).GetValueOrDefault(0);
+            var t = (odataTop ?? top).GetValueOrDefault(10);
             if (t <= 0) t = 10;
             if (s < 0) s = 0;
 

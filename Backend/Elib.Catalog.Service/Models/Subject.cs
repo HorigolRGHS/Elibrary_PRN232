@@ -5,7 +5,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Elib.Catalog.Service.Models;
 
-[Table("Subject", Schema = "catalog_svc")]
+[Table("Subject")]
 public partial class Subject
 {
     [Key]

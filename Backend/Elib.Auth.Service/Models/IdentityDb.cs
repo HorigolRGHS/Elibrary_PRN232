@@ -6,7 +6,6 @@ namespace Elib.Auth.Service.Models;
 
 public partial class IdentityDb : DbContext
 {
-    private readonly string _schema = "identity_svc";
     public IdentityDb()
     {
     }
@@ -20,7 +19,7 @@ public partial class IdentityDb : DbContext
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 #warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
-        => optionsBuilder.UseSqlServer("Server=.;Database=ELibrary;Trusted_Connection=True;TrustServerCertificate=True");
+        => optionsBuilder.UseSqlServer("Server=.;Database=ELibrary_Identity;Trusted_Connection=True;TrustServerCertificate=True");
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -28,7 +27,7 @@ public partial class IdentityDb : DbContext
         {
             entity.HasKey(e => e.UserId).HasName("PK__User__1788CCAC5C0359CC");
 
-            entity.ToTable("User", _schema);
+            entity.ToTable("User");
 
             entity.HasIndex(e => e.Active, "IX_User_Active");
 

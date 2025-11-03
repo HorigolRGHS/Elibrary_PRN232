@@ -1,31 +1,33 @@
 ﻿USE master;
 GO
 
-IF DB_ID(N'ELibrary') IS NOT NULL
-    DROP DATABASE ELibrary;
+-- Drop old databases if they exist
+IF DB_ID(N'ELibrary_Identity') IS NOT NULL DROP DATABASE ELibrary_Identity;
+GO
+IF DB_ID(N'ELibrary_Catalog') IS NOT NULL DROP DATABASE ELibrary_Catalog;
+GO
+IF DB_ID(N'ELibrary_Interaction') IS NOT NULL DROP DATABASE ELibrary_Interaction;
+GO
+IF DB_ID(N'ELibrary_Activity') IS NOT NULL DROP DATABASE ELibrary_Activity;
 GO
 
-CREATE DATABASE ELibrary;
+-- Create separated databases per service
+CREATE DATABASE ELibrary_Identity;
 GO
-
-USE ELibrary;
+CREATE DATABASE ELibrary_Catalog;
 GO
-
--- Tạo schema cho từng service
-CREATE SCHEMA identity_svc;
+CREATE DATABASE ELibrary_Interaction;
 GO
-CREATE SCHEMA catalog_svc;
+CREATE DATABASE ELibrary_Activity;
 GO
-CREATE SCHEMA interaction_svc;
-GO
-CREATE SCHEMA activity_svc;
-GO
-
 
 /* ==============================
-   1. Identity Service
+   1. Identity Service (ELibrary_Identity)
    ============================== */
-CREATE TABLE identity_svc.[User] (
+USE ELibrary_Identity;
+GO
+
+CREATE TABLE [User] (
     UserID INT PRIMARY KEY IDENTITY(1,1),
     FullName NVARCHAR(100) NOT NULL,
     Email NVARCHAR(255) UNIQUE NOT NULL,
@@ -39,16 +41,18 @@ CREATE TABLE identity_svc.[User] (
     DeletedBy INT NULL
 );
 
-CREATE INDEX IX_User_Email ON identity_svc.[User](Email);
-CREATE INDEX IX_User_Role ON identity_svc.[User](Role);
-CREATE INDEX IX_User_Active ON identity_svc.[User](Active);
+CREATE INDEX IX_User_Email ON [User](Email);
+CREATE INDEX IX_User_Role ON [User](Role);
+CREATE INDEX IX_User_Active ON [User](Active);
 GO
 
-
 /* ==============================
-   2. Catalog Service
+   2. Catalog Service (ELibrary_Catalog)
    ============================== */
-CREATE TABLE catalog_svc.Subject (
+USE ELibrary_Catalog;
+GO
+
+CREATE TABLE [Subject] (
     SubjectID INT PRIMARY KEY IDENTITY(1,1),
     SubjectName NVARCHAR(100) NOT NULL,
     ImageURL NVARCHAR(500) NOT NULL,
@@ -57,7 +61,7 @@ CREATE TABLE catalog_svc.Subject (
     UpdatedDate DATETIME
 );
 
-CREATE TABLE catalog_svc.Category (
+CREATE TABLE [Category] (
     CategoryID INT PRIMARY KEY IDENTITY(1,1),
     CategoryName NVARCHAR(100) NOT NULL,
     [Description] NVARCHAR(500),
@@ -65,7 +69,7 @@ CREATE TABLE catalog_svc.Category (
     UpdatedDate DATETIME
 );
 
-CREATE TABLE catalog_svc.Document (
+CREATE TABLE [Document] (
     DocumentID INT PRIMARY KEY IDENTITY(1,1),
     Title NVARCHAR(200) NOT NULL,
     [Description] NVARCHAR(1000),
@@ -81,22 +85,24 @@ CREATE TABLE catalog_svc.Document (
     DeletedDate DATETIME,
     DeletedBy INT NULL,
     CreatedBy INT NOT NULL,
-    FOREIGN KEY (CategoryID) REFERENCES catalog_svc.Category(CategoryID) ON DELETE CASCADE,
-    FOREIGN KEY (SubjectID) REFERENCES catalog_svc.[Subject](SubjectID) ON DELETE CASCADE
+    FOREIGN KEY (CategoryID) REFERENCES [Category](CategoryID) ON DELETE CASCADE,
+    FOREIGN KEY (SubjectID) REFERENCES [Subject](SubjectID) ON DELETE CASCADE
 );
 
-CREATE INDEX IX_Document_Title ON catalog_svc.Document(Title);
-CREATE INDEX IX_Document_CategoryID ON catalog_svc.Document(CategoryID);
-CREATE INDEX IX_Document_SubjectID ON catalog_svc.Document(SubjectID);
-CREATE INDEX IX_Document_Status ON catalog_svc.Document(Status);
-CREATE INDEX IX_Document_CreatedDate ON catalog_svc.Document(CreatedDate);
+CREATE INDEX IX_Document_Title ON [Document](Title);
+CREATE INDEX IX_Document_CategoryID ON [Document](CategoryID);
+CREATE INDEX IX_Document_SubjectID ON [Document](SubjectID);
+CREATE INDEX IX_Document_Status ON [Document](Status);
+CREATE INDEX IX_Document_CreatedDate ON [Document](CreatedDate);
 GO
 
-
 /* ==============================
-   3. Interaction Service
+   3. Interaction Service (ELibrary_Interaction)
    ============================== */
-CREATE TABLE interaction_svc.Comment (
+USE ELibrary_Interaction;
+GO
+
+CREATE TABLE [Comment] (
     CommentID INT PRIMARY KEY IDENTITY(1,1),
     DocumentID INT NOT NULL,
     Content NVARCHAR(1000) NOT NULL,
@@ -105,7 +111,7 @@ CREATE TABLE interaction_svc.Comment (
     CreatedBy INT NULL
 );
 
-CREATE TABLE interaction_svc.Rating (
+CREATE TABLE [Rating] (
     RatingID INT PRIMARY KEY IDENTITY(1,1),
     DocumentID INT NOT NULL,
     StarRating INT NOT NULL CHECK (StarRating BETWEEN 1 AND 5),
@@ -115,7 +121,7 @@ CREATE TABLE interaction_svc.Rating (
     CreatedBy INT NULL
 );
 
-CREATE TABLE interaction_svc.Report (
+CREATE TABLE [Report] (
     ReportID INT PRIMARY KEY IDENTITY(1,1),
     DocumentID INT NOT NULL,
     Reason NVARCHAR(1000) NOT NULL,
@@ -126,26 +132,28 @@ CREATE TABLE interaction_svc.Report (
         CHECK (Status IN ('Pending','Resolved'))
 );
 
-CREATE INDEX IX_Comment_DocumentID ON interaction_svc.Comment(DocumentID);
-CREATE INDEX IX_Comment_CreatedDate ON interaction_svc.Comment(CreatedDate);
-CREATE INDEX IX_Rating_DocumentID ON interaction_svc.Rating(DocumentID);
-CREATE INDEX IX_Rating_StarRating ON interaction_svc.Rating(StarRating);
-CREATE INDEX IX_Report_DocumentID ON interaction_svc.Report(DocumentID);
-CREATE INDEX IX_Report_Status ON interaction_svc.Report(Status);
+CREATE INDEX IX_Comment_DocumentID ON [Comment](DocumentID);
+CREATE INDEX IX_Comment_CreatedDate ON [Comment](CreatedDate);
+CREATE INDEX IX_Rating_DocumentID ON [Rating](DocumentID);
+CREATE INDEX IX_Rating_StarRating ON [Rating](StarRating);
+CREATE INDEX IX_Report_DocumentID ON [Report](DocumentID);
+CREATE INDEX IX_Report_Status ON [Report](Status);
 GO
 
-
 /* ==============================
-   4. Activity Service
+   4. Activity Service (ELibrary_Activity)
    ============================== */
-CREATE TABLE activity_svc.DownloadHistory (
+USE ELibrary_Activity;
+GO
+
+CREATE TABLE [DownloadHistory] (
     DownloadID INT PRIMARY KEY IDENTITY(1,1),
     DocumentID INT NOT NULL,
     DownloadedBy INT NULL,
-    DownloadedDate DATETIME NOT NULL DEFAULT GETDATE(),
+    DownloadedDate DATETIME NOT NULL DEFAULT GETDATE()
 );
 
-CREATE TABLE activity_svc.Notification (
+CREATE TABLE [Notification] (
     NotificationID INT PRIMARY KEY IDENTITY(1,1),
     Title NVARCHAR(200) NOT NULL,
     Content NVARCHAR(1000) NOT NULL,
@@ -158,7 +166,7 @@ CREATE TABLE activity_svc.Notification (
         CHECK (Status IN ('Pending','Sent','Cancelled'))
 );
 
-CREATE TABLE activity_svc.NotificationView (
+CREATE TABLE [NotificationView] (
     NotificationID INT NOT NULL,
     ViewedBy INT NOT NULL,
     Viewed BIT NOT NULL DEFAULT 0,
@@ -167,51 +175,55 @@ CREATE TABLE activity_svc.NotificationView (
     PRIMARY KEY (NotificationID, ViewedBy)
 );
 
-CREATE INDEX IX_DownloadHistory_DocumentID ON activity_svc.DownloadHistory(DocumentID);
-CREATE INDEX IX_DownloadHistory_DownloadedDate ON activity_svc.DownloadHistory(DownloadedDate);
-CREATE INDEX IX_Notification_CreatedDate ON activity_svc.Notification(CreatedDate);
-CREATE INDEX IX_Notification_ScheduledDate ON activity_svc.Notification(ScheduledDate);
-CREATE INDEX IX_Notification_Status ON activity_svc.Notification(Status);
+CREATE INDEX IX_DownloadHistory_DocumentID ON [DownloadHistory](DocumentID);
+CREATE INDEX IX_DownloadHistory_DownloadedDate ON [DownloadHistory](DownloadedDate);
+CREATE INDEX IX_Notification_CreatedDate ON [Notification](CreatedDate);
+CREATE INDEX IX_Notification_ScheduledDate ON [Notification](ScheduledDate);
+CREATE INDEX IX_Notification_Status ON [Notification](Status);
 GO
 
 /* ==============================
    Bảng AuditLog trong Activity Service
    ============================== */
-CREATE TABLE activity_svc.AuditLog (
+CREATE TABLE [AuditLog] (
     AuditID BIGINT PRIMARY KEY IDENTITY(1,1),
-    ServiceName NVARCHAR(100) NOT NULL,       -- Tên service: Identity, Catalog, Interaction, Activity
-    TableName NVARCHAR(100) NOT NULL,         -- Bảng bị tác động
-    Action NVARCHAR(20) NOT NULL              -- INSERT, UPDATE, DELETE
+    ServiceName NVARCHAR(100) NOT NULL,
+    TableName NVARCHAR(100) NOT NULL,
+    Action NVARCHAR(20) NOT NULL
         CHECK (Action IN ('INSERT','UPDATE','DELETE')),
-    RecordID NVARCHAR(100) NOT NULL,          -- ID của record (DocumentID, UserID, …)
-    PerformedBy INT NULL,                     -- UserID thực hiện (từ identity_svc.User)
-    PerformedAt DATETIME NOT NULL DEFAULT GETDATE(), -- Thời điểm
-    OldValues NVARCHAR(MAX) NULL,             -- JSON/text dữ liệu cũ
-    NewValues NVARCHAR(MAX) NULL,             -- JSON/text dữ liệu mới
+    RecordID NVARCHAR(100) NOT NULL,
+    PerformedBy INT NULL,
+    PerformedAt DATETIME NOT NULL DEFAULT GETDATE(),
+    OldValues NVARCHAR(MAX) NULL,
+    NewValues NVARCHAR(MAX) NULL,
     UpdatedDate DATETIME NULL
 );
 
-CREATE INDEX IX_AuditLog_ServiceName ON activity_svc.AuditLog(ServiceName);
-CREATE INDEX IX_AuditLog_TableName ON activity_svc.AuditLog(TableName);
-CREATE INDEX IX_AuditLog_PerformedAt ON activity_svc.AuditLog(PerformedAt);
+CREATE INDEX IX_AuditLog_ServiceName ON [AuditLog](ServiceName);
+CREATE INDEX IX_AuditLog_TableName ON [AuditLog](TableName);
+CREATE INDEX IX_AuditLog_PerformedAt ON [AuditLog](PerformedAt);
 GO
-
 
 /* ==============================
    Seed Identity Service
    ============================== */
-INSERT INTO identity_svc.[User] (FullName, Email, PasswordHash, [Role], Active)
+USE ELibrary_Identity;
+GO
+
+INSERT INTO [User] (FullName, Email, PasswordHash, [Role], Active)
 VALUES 
 (N'Nguyễn Văn Admin', N'admin@example.com', N'$2a$12$fuP1SH5fbC61Y8zcejE9kO2aephowm7yCcG0LinkliG8Dz/CyHYj6', N'Admin', 1),
 (N'Lê Thị Khách', N'customer1@example.com', N'$2a$12$fuP1SH5fbC61Y8zcejE9kO2aephowm7yCcG0LinkliG8Dz/CyHYj6', N'Customer', 1),
 (N'Trần Văn Mua', N'customer2@example.com', N'$2a$12$fuP1SH5fbC61Y8zcejE9kO2aephowm7yCcG0LinkliG8Dz/CyHYj6', N'Customer', 1);
-
-
+GO
 
 /* ==============================
    Seed Catalog Service
    ============================== */
-INSERT INTO catalog_svc.Subject (SubjectName, [Description], ImageURL)
+USE ELibrary_Catalog;
+GO
+
+INSERT INTO [Subject] (SubjectName, [Description], ImageURL)
 VALUES 
 (N'Mathematics', N'Includes topics such as algebra, geometry, and calculus.', 'https://i.ibb.co/SDyDWTsy/The-Power-of-Mathematics-and-Computing.jpg'),
 (N'Literature', N'Contains classical and modern literary works, poetry, and prose.', 'https://i.ibb.co/ymrf2cmj/hoc-gioi-ngu-van-bang-tieng-anh.jpg'),
@@ -224,14 +236,14 @@ VALUES
 (N'Art', N'Appreciate visual arts, painting, sculpture, and art history.', 'https://i.ibb.co/0c5q2Pz/art.jpg'),
 (N'Music', N'Learn about music theory, instruments, and the history of music.', 'https://i.ibb.co/1v6tK1Z/music.jpg');
 
-INSERT INTO catalog_svc.Category (CategoryName, [Description])
+INSERT INTO [Category] (CategoryName, [Description])
 VALUES
 (N'Lectures', N'Comprehensive lectures on topics.'),
 (N'Exercises', N'A collection of practice problems with answers.'),
 (N'Solutions', N'Detailed solutions to common problems.');
 
--- Documents (CreatedBy = 3 nghĩa là userID=3 trong identity_svc.[User])
-INSERT INTO catalog_svc.Document (Title, Description, FileURL, ViewCount, DownloadCount, CategoryID, SubjectID, Status, CreatedBy, CreatedDate)
+-- Documents (CreatedBy = 3 nghĩa là userID=3 trong [User])
+INSERT INTO [Document] (Title, Description, FileURL, ViewCount, DownloadCount, CategoryID, SubjectID, Status, CreatedBy, CreatedDate)
 VALUES
 (N'Introduction to Algebra', N'A comprehensive guide to basic algebra concepts.', 'Group3_ELT401_EL1802_Project1.pdf', 10, 5, 1, 1, 'Accepted', 3, '2025-06-10 10:00:00'),
 (N'Poetry Analysis', N'Analysis of modern poetry techniques.', 'Group3_ELT401_EL1802_Project1.pdf', 8, 3, 2, 2, 'Accepted', 3, '2025-06-11 12:00:00'),
@@ -246,12 +258,15 @@ VALUES
 (N'Computer Networks', 'Networking essentials.', 'Group3_ELT401_EL1802_Project1.pdf', 65, 22, 2, 2, 'Accepted', 3, GETDATE()),
 (N'Cybersecurity 101', 'Foundations of digital security.', 'Group3_ELT401_EL1802_Project1.pdf', 85, 45, 3, 1, 'Accepted', 3, GETDATE()),
 (N'Data Structures', 'Stacks, queues, trees, and more.', 'Group3_ELT401_EL1802_Project1.pdf', 95, 50, 1, 2, 'Accepted', 3, GETDATE());
-
+GO
 
 /* ==============================
    Seed Interaction Service
    ============================== */
-INSERT INTO interaction_svc.Comment (DocumentID, Content, CreatedBy, CreatedDate)
+USE ELibrary_Interaction;
+GO
+
+INSERT INTO [Comment] (DocumentID, Content, CreatedBy, CreatedDate)
 VALUES
 (1, N'Excellent resource for algebra beginners!', 1, '2025-06-10 14:30:00'),
 (2, N'Really clear explanations, thanks!', 1, '2025-06-11 09:15:00'),
@@ -262,22 +277,25 @@ VALUES
 (3, N'Fantastic algebra content!', 1, '2025-06-16 08:30:00'),
 (1, N'Looking forward to more guides!', 1, '2025-06-16 18:00:00');
 
-INSERT INTO interaction_svc.Rating (DocumentID, StarRating, Review, CreatedBy, CreatedDate)
+INSERT INTO [Rating] (DocumentID, StarRating, Review, CreatedBy, CreatedDate)
 VALUES
 (1, 5, N'Excellent resource for beginners.', 3, '2025-06-10 11:30:00'),
 (1, 4, N'Good content, but could be more detailed.', 3, '2025-06-11 13:30:00');
-
+GO
 
 /* ==============================
    Seed Activity Service
    ============================== */
-INSERT INTO activity_svc.DownloadHistory (DocumentID, DownloadedBy, DownloadedDate)
+USE ELibrary_Activity;
+GO
+
+INSERT INTO [DownloadHistory] (DocumentID, DownloadedBy, DownloadedDate)
 VALUES
 (3, 3, '2025-06-10 12:00:00'),
 (2, 3, '2025-06-10 12:30:00'),
 (1, 3, '2025-06-11 14:00:00');
 
-INSERT INTO activity_svc.[Notification] (Title, Content, CreatedBy, CreatedDate, ScheduledDate, [Type], [Status])
+INSERT INTO [Notification] (Title, Content, CreatedBy, CreatedDate, ScheduledDate, [Type], [Status])
 VALUES
 ('System Update', 'System maintenance scheduled for next week.', 1, '2025-06-01 10:00:00', '2025-06-02 09:00:00', 'System', 'Sent'),
 ('Welcome Offer', 'New customers get 10% off their first order!', 1, '2025-06-02 12:00:00', '2025-06-03 10:00:00', 'Customer', 'Sent'),
@@ -285,4 +303,5 @@ VALUES
 ('Security Alert', 'Update your password for enhanced security.', 1, '2025-06-04 09:00:00', '2025-06-05 11:00:00', 'System', 'Sent'),
 ('Promotional Event', 'Join our summer sale event this weekend!', 1, '2025-06-05 14:00:00', '2025-06-06 12:00:00', 'Customer', 'Sent'),
 ('Account Update', 'Please verify your email address.', 1, '2025-06-06 11:00:00', '2025-06-07 09:00:00', 'Custom', 'Pending');
+GO
 

@@ -50,12 +50,33 @@ builder.Services.AddMassTransit(cfg =>
 
     cfg.UsingRabbitMq((context, bus) =>
     {
+        // Get RabbitMQ configuration
         var mq = builder.Configuration.GetSection("RabbitMQ");
-        bus.Host(mq["Host"], mq["VirtualHost"], h =>
+        
+        // Try to use Aspire's RabbitMQ connection first, fallback to configuration
+        var connectionString = builder.Configuration.GetConnectionString("rabbitmq");
+        if (!string.IsNullOrEmpty(connectionString))
         {
-            h.Username(mq["Username"]);
-            h.Password(mq["Password"]);
-        });
+            // Parse the connection string URI
+            var uri = new Uri(connectionString);
+            bus.Host(uri.Host, uri.Port > 0 ? (ushort)uri.Port : (ushort)5672, uri.AbsolutePath.Length > 1 ? uri.AbsolutePath.TrimStart('/') : "/", h =>
+            {
+                // Add credentials from appsettings if the connection string doesn't have them
+                if (!string.IsNullOrEmpty(mq["Username"]))
+                    h.Username(mq["Username"]);
+                if (!string.IsNullOrEmpty(mq["Password"]))
+                    h.Password(mq["Password"]);
+            });
+        }
+        else
+        {
+            // Fallback to manual configuration
+            bus.Host(mq["Host"], mq["VirtualHost"], h =>
+            {
+                h.Username(mq["Username"]);
+                h.Password(mq["Password"]);
+            });
+        }
 
         bus.PrefetchCount = ushort.TryParse(mq["Prefetch"], out var prefetch) ? prefetch : (ushort)16;
     });
@@ -134,5 +155,19 @@ app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+
+// Auto-apply EF Core migrations on startup (first run/clone friendly)
+using (var scope = app.Services.CreateScope())
+{
+    try
+    {
+        var db = scope.ServiceProvider.GetRequiredService<InteractionDb>();
+        db.Database.Migrate();
+    }
+    catch
+    {
+        // Ignore migration errors at startup to avoid blocking the app when DB is unreachable
+    }
+}
 
 app.Run();

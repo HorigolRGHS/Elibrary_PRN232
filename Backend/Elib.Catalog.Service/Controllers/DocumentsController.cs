@@ -6,16 +6,20 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OData.Query;
 using SharedLibrary.Auths;
 using System.Security.Claims;
+using MassTransit;
+using SharedLibrary.Messages;
 
 namespace Elib.Catalog.Service.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class DocumentsController(IDocumentService service, IViewTrackingService viewTracking, CatalogDb dbcontext) : ControllerBase
+    public class DocumentsController(IDocumentService service, IViewTrackingService viewTracking, CatalogDb dbcontext, IPublishEndpoint publish, ILogger<DocumentsController> logger) : ControllerBase
     {
         protected readonly IDocumentService _service = service;
         protected readonly IViewTrackingService _viewTracking = viewTracking;
         protected readonly CatalogDb _dbcontext = dbcontext;
+        protected readonly IPublishEndpoint _publish = publish;
+        protected readonly ILogger<DocumentsController> _logger = logger;
 
         [HttpGet]
         [AllowAnonymous]
@@ -94,7 +98,6 @@ namespace Elib.Catalog.Service.Controllers
         [HttpDelete("{id:int}")]
         public async Task<IActionResult> Delete(int id)
         {
-            // Get user ID and role from bearer token claims
             var userId = User.GetUserIdOrThrow();
             var userRole = User.FindFirstValue(System.Security.Claims.ClaimTypes.Role);
             
@@ -113,6 +116,47 @@ namespace Elib.Catalog.Service.Controllers
             
             var resp = await _service.ApproveAsync(id, req, userId);
             return resp.Success ? Ok(resp) : BadRequest(resp);
+        }
+
+        [HttpPost("{id:int}/download")]
+        [Authorize]
+        public async Task<IActionResult> TrackDownload(int id)
+        {
+            var doc = await _service.GetByIdAsync(id);
+            if (!doc.Success)
+                return NotFound(doc);
+
+            var userId = User.GetUserIdOrThrow();
+
+            try
+            {
+                await _publish.Publish(new DocumentDownloaded(
+                    DocumentId: id,
+                    UserId: userId,
+                    FileName: doc.Data?.FileUrl ?? "",
+                    DownloadedAt: DateTime.UtcNow
+                ));
+
+                _logger.LogInformation(
+                    "Download tracked: DocId={DocId}, UserId={UserId}",
+                    id, userId);
+
+                return Ok(SharedLibrary.Commons.ApiResponse<object>.Ok(
+                    new { documentId = id, fileUrl = doc.Data?.FileUrl },
+                    "Download tracked successfully"
+                ));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex,
+                    "Failed to track download for DocId={DocId}, UserId={UserId}",
+                    id, userId);
+
+                return Ok(SharedLibrary.Commons.ApiResponse<object>.Ok(
+                    new { documentId = id, fileUrl = doc.Data?.FileUrl },
+                    "Download proceeding (tracking failed)"
+                ));
+            }
         }
 
     }

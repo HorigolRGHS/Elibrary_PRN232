@@ -229,15 +229,15 @@ export function EditDocumentDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col w-[95vw] sm:w-auto">
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle>Edit Document</DialogTitle>
           <DialogDescription>
             Update document information
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6 py-4">
+        <div className="space-y-6 py-4 overflow-y-auto flex-1 pr-2">
           {/* Title */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
@@ -303,19 +303,17 @@ export function EditDocumentDialog({
             {/* Current File Display */}
             {formData.fileUrl && !selectedFile && (
               <Card className="border border-green-200 dark:border-green-800 bg-green-50/50 dark:bg-green-950/20 p-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-start gap-3">
-                    <div className="p-2 bg-primary/10 rounded">
-                      <File className="h-5 w-5 text-primary" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-foreground truncate">
-                        {formData.fileUrl}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        Current file
-                      </p>
-                    </div>
+                <div className="flex items-start gap-3">
+                  <div className="p-2 bg-primary/10 rounded flex-shrink-0">
+                    <File className="h-5 w-5 text-primary" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-foreground break-all line-clamp-2" title={formData.fileUrl}>
+                      {formData.fileUrl}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Current file
+                    </p>
                   </div>
                 </div>
               </Card>
@@ -351,7 +349,7 @@ export function EditDocumentDialog({
                         <File className="h-5 w-5 text-primary" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="font-medium text-foreground truncate">
+                        <p className="font-medium text-foreground break-all line-clamp-2">
                           {selectedFile.name}
                         </p>
                         <p className="text-sm text-muted-foreground">
@@ -480,7 +478,7 @@ export function EditDocumentDialog({
           </div>
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="flex-shrink-0 border-t pt-4 mt-4">
           <Button
             type="button"
             variant="outline"

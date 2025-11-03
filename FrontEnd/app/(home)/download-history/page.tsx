@@ -41,13 +41,20 @@ const triggerFileDownload = (file: File, fallbackName: string): void => {
 };
 
 const formatDate = (dateString: string): string => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
+    if (!dateString) return "";
+    // If the API timestamp has no timezone, assume UTC to avoid local misinterpretation
+    const hasTimeZone = /Z|[+-]\d{2}:?\d{2}$/.test(dateString);
+    const safeIso = hasTimeZone ? dateString : `${dateString}Z`;
+    const date = new Date(safeIso);
+    if (isNaN(date.getTime())) return dateString;
+    return date.toLocaleString(undefined, {
         year: 'numeric',
         month: 'short',
-        day: 'numeric',
+        day: '2-digit',
         hour: '2-digit',
-        minute: '2-digit'
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
     });
 };
 
