@@ -36,12 +36,28 @@ builder.Services.AddMassTransit(x =>
 {
     x.UsingRabbitMq((context, cfg) =>
     {
-        cfg.Host(builder.Configuration["RabbitMQ:Host"] ?? "localhost", "/", h =>
+        var mq = builder.Configuration.GetSection("RabbitMQ");
+        
+        var connectionString = builder.Configuration.GetConnectionString("rabbitmq");
+        if (!string.IsNullOrEmpty(connectionString))
         {
-            h.Username(builder.Configuration["RabbitMQ:Username"] ?? "guest");
-            h.Password(builder.Configuration["RabbitMQ:Password"] ?? "guest");
-        });
-
+            var uri = new Uri(connectionString);
+            cfg.Host(uri.Host, uri.Port > 0 ? (ushort)uri.Port : (ushort)5672, uri.AbsolutePath.Length > 1 ? uri.AbsolutePath.TrimStart('/') : "/", h =>
+            {
+                if (!string.IsNullOrEmpty(mq["Username"]))
+                    h.Username(mq["Username"]);
+                if (!string.IsNullOrEmpty(mq["Password"]))
+                    h.Password(mq["Password"]);
+            });
+        }
+        else
+        {
+            cfg.Host(builder.Configuration["RabbitMQ:Host"] ?? "localhost", "/", h =>
+            {
+                h.Username(builder.Configuration["RabbitMQ:Username"] ?? "app");
+                h.Password(builder.Configuration["RabbitMQ:Password"] ?? "app");
+            });
+        }
     });
 });
 

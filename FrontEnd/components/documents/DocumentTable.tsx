@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "react-toastify";
 import {
   Table,
@@ -61,9 +61,38 @@ export function DocumentTable({
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [editingDocId, setEditingDocId] = useState<number | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingDoc, setEditingDoc] = useState<DocumentUserResponseItemDTO | null>(null);
+
+  useEffect(() => {
+    const loadDocDetails = async () => {
+      if (!editingDocId || !isEditDialogOpen) return;
+      try {
+        const details = await DocumentService.getUserDocumentDetails(editingDocId);
+        setEditingDoc(details);
+      } catch (e) {
+        // Fallback to minimal info from list if fetch fails
+        const base = data.find(d => d.documentId === editingDocId);
+        if (base) {
+          setEditingDoc({
+            documentId: base.documentId,
+            title: base.title,
+            description: "",
+            fileUrl: null,
+            viewCount: base.viewCount ?? 0,
+            downloadCount: base.downloadCount ?? 0,
+            categoryName: base.categoryName,
+            subjectName: base.subjectName,
+            createdBy: base.createdBy,
+            createdDate: base.createdDate,
+          } as DocumentUserResponseItemDTO);
+        }
+      }
+    };
+    loadDocDetails();
+  }, [editingDocId, isEditDialogOpen, data]);
 
   const getSortIcon = (columnKey: string) => {
-    if (sort.field !== columnKey) {
+    if (sort.field !== columnKey || !sort.direction) {
       return <ArrowUpDown className="ml-2 size-4" />;
     }
     return sort.direction === "asc" ? (
@@ -319,33 +348,20 @@ export function DocumentTable({
       />
 
       {/* Edit Document Dialog */}
-      {editingDocId && (() => {
-        const editDoc = data.find(d => d.documentId === editingDocId);
-        return editDoc ? (
-          <EditDocumentDialog
-            isOpen={isEditDialogOpen}
-            document={{
-              documentId: editDoc.documentId,
-              title: editDoc.title,
-              description: "",
-              fileUrl: null,
-              viewCount: 0,
-              downloadCount: 0,
-              categoryName: editDoc.categoryName,
-              subjectName: editDoc.subjectName,
-              createdBy: editDoc.createdBy,
-              createdDate: editDoc.createdDate,
-            } as DocumentUserResponseItemDTO}
-            onClose={() => {
-              setIsEditDialogOpen(false);
-              setEditingDocId(null);
-            }}
-            onSuccess={() => {
-              onActionSuccess?.();
-            }}
-          />
-        ) : null;
-      })()}
+      {editingDocId && editingDoc && (
+        <EditDocumentDialog
+          isOpen={isEditDialogOpen}
+          document={editingDoc}
+          onClose={() => {
+            setIsEditDialogOpen(false);
+            setEditingDocId(null);
+            setEditingDoc(null);
+          }}
+          onSuccess={() => {
+            onActionSuccess?.();
+          }}
+        />
+      )}
     </div>
   );
 }

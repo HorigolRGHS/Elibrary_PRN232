@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Elib.Interaction.Service.Models;
 
-[Table("Comment", Schema = "interaction_svc")]
+[Table("Comment")]
 public partial class Comment
 {
     [Key]

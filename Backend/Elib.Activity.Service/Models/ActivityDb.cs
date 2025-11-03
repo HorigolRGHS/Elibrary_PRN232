@@ -6,7 +6,6 @@ namespace Elib.Activity.Service.Models;
 
 public partial class ActivityDb : DbContext
 {
-    private readonly string _schema = "activity_svc";
     public ActivityDb()
     {
     }
@@ -30,7 +29,7 @@ public partial class ActivityDb : DbContext
         {
             entity.HasKey(e => e.AuditId).HasName("PK__AuditLog__A17F23B805140108");
 
-            entity.ToTable("AuditLog", _schema);
+            entity.ToTable("AuditLog");
 
             entity.HasIndex(e => e.PerformedAt, "IX_AuditLog_PerformedAt");
 
@@ -55,7 +54,7 @@ public partial class ActivityDb : DbContext
         {
             entity.HasKey(e => e.DownloadId).HasName("PK__Download__73D5A710234B6DDD");
 
-            entity.ToTable("DownloadHistory", _schema);
+            entity.ToTable("DownloadHistory");
 
             entity.HasIndex(e => e.DocumentId, "IX_DownloadHistory_DocumentID");
 
@@ -72,7 +71,7 @@ public partial class ActivityDb : DbContext
         {
             entity.HasKey(e => e.NotificationId).HasName("PK__Notifica__20CF2E32D82C7FE9");
 
-            entity.ToTable("Notification", _schema);
+            entity.ToTable("Notification");
 
             entity.HasIndex(e => e.CreatedDate, "IX_Notification_CreatedDate");
 
@@ -98,7 +97,7 @@ public partial class ActivityDb : DbContext
         {
             entity.HasKey(e => new { e.NotificationId, e.ViewedBy }).HasName("PK__Notifica__E1992FEA7F1C7C36");
 
-            entity.ToTable("NotificationView", _schema);
+            entity.ToTable("NotificationView");
 
             entity.Property(e => e.NotificationId).HasColumnName("NotificationID");
             entity.Property(e => e.CreatedDate)

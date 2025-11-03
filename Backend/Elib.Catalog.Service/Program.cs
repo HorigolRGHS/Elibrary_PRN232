@@ -86,16 +86,32 @@ builder.Services.AddMassTransit(cfg =>
     cfg.AddConsumer<CatalogCountersRequestConsumer>();
     cfg.AddConsumer<DocumentDownloadedConsumer>();
 
-    // Register request client for fetching user full names from Auth service
     cfg.AddRequestClient<UserFullNamesRequest>();
 
     cfg.UsingRabbitMq((context, bus) =>
     {
-        bus.Host(builder.Configuration["RabbitMQ:Host"], "/", h =>
+        var mq = builder.Configuration.GetSection("RabbitMQ");
+        
+        var connectionString = builder.Configuration.GetConnectionString("rabbitmq");
+        if (!string.IsNullOrEmpty(connectionString))
         {
-            h.Username(builder.Configuration["RabbitMQ:Username"]);
-            h.Password(builder.Configuration["RabbitMQ:Password"]);
-        });
+            var uri = new Uri(connectionString);
+            bus.Host(uri.Host, uri.Port > 0 ? (ushort)uri.Port : (ushort)5672, uri.AbsolutePath.Length > 1 ? uri.AbsolutePath.TrimStart('/') : "/", h =>
+            {
+                if (!string.IsNullOrEmpty(mq["Username"]))
+                    h.Username(mq["Username"]);
+                if (!string.IsNullOrEmpty(mq["Password"]))
+                    h.Password(mq["Password"]);
+            });
+        }
+        else
+        {
+            bus.Host(builder.Configuration["RabbitMQ:Host"], "/", h =>
+            {
+                h.Username(builder.Configuration["RabbitMQ:Username"]);
+                h.Password(builder.Configuration["RabbitMQ:Password"]);
+            });
+        }
 
         bus.ReceiveEndpoint("catalog.get-document-summary", e =>
         {
@@ -124,9 +140,9 @@ builder.Services.AddMassTransit(cfg =>
 
 builder.Services.Configure<MassTransitHostOptions>(opts =>
 {
-    opts.WaitUntilStarted = false;
-    opts.StartTimeout = TimeSpan.FromSeconds(5);
-    opts.StopTimeout = TimeSpan.FromSeconds(5);
+    opts.WaitUntilStarted = true;
+    opts.StartTimeout = TimeSpan.FromSeconds(30);
+    opts.StopTimeout = TimeSpan.FromSeconds(10);
 });
 
 builder.Services.AddEndpointsApiExplorer();
@@ -164,5 +180,19 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+// Auto-apply EF Core migrations on startup (first run/clone friendly)
+using (var scope = app.Services.CreateScope())
+{
+    try
+    {
+        var db = scope.ServiceProvider.GetRequiredService<CatalogDb>();
+        db.Database.Migrate();
+    }
+    catch
+    {
+        // Ignore migration errors at startup to avoid blocking the app when DB is unreachable
+    }
+}
 
 app.Run();

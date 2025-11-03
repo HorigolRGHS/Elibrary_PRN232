@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Elib.Catalog.Service.Models;
 
-[Table("Category", Schema = "catalog_svc")]
+[Table("Category")]
 public partial class Category
 {
     [Key]

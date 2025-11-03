@@ -93,6 +93,7 @@ export const DocumentService = {
    * Tải file full (alias cho getDocumentStream với mode 'full')
    */
   async downloadDocument(docId: number, fileUrl: string): Promise<File> {
+    await api.post<ResponseDTO<void>>(`/catalog/api/documents/${docId}/download`);
     const url = StorageService.buildFileDownloadUrl(docId, fileUrl, "full");
     return api.getFileAsFile(url);
   },

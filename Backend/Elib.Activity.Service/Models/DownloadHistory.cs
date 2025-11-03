@@ -5,7 +5,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Elib.Activity.Service.Models;
 
-[Table("DownloadHistory", Schema = "activity_svc")]
+[Table("DownloadHistory")]
 public partial class DownloadHistory
 {
     [Key]

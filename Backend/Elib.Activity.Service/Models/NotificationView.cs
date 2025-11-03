@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Elib.Activity.Service.Models;
 
-[Table("NotificationView", Schema = "activity_svc")]
+[Table("NotificationView")]
 public partial class NotificationView
 {
     [Required]
