@@ -21,6 +21,14 @@ namespace Elib.Activity.Service.Messaging.Consumer
         {
             var m = context.Message;
 
+            // Validate message
+            if (m.DocumentId <= 0)
+            {
+                _logger.LogWarning(
+                    "[DownloadSkipped] Invalid DocumentId={DocId}. Skipping.",
+                    m.DocumentId);
+                return;
+            }
 
             try
             {
@@ -38,9 +46,10 @@ namespace Elib.Activity.Service.Messaging.Consumer
             catch (Exception ex)
             {
                 _logger.LogError(ex,
-                    "Failed to record download. DocId={DocId} UserId={UserId} File={File}",
+                    "[DownloadLogFailed] DocId={DocId} UserId={UserId} File={File}. Will retry if configured.",
                     m.DocumentId, m.UserId, m.FileName);
 
+                // Re-throw to trigger RabbitMQ retry/dead-letter queue
                 throw;
             }
         }

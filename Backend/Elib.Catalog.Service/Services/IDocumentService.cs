@@ -10,7 +10,7 @@ namespace Elib.Catalog.Service.Services
         Task<ApiResponse<IEnumerable<UserDocumentListDTO>>> GetAllAsync();
         Task<ApiResponse<UserDocumentItemDTO>> GetByIdAsync(int id);
         Task<ApiResponse<AdminDocumentItemDTO>> GetByIdAdminAsync(int id);
-        Task<ApiResponse<string>> CreateAsync(CreateDocumentDTO entity, int userId);
+        Task<ApiResponse<string>> CreateAsync(CreateDocumentDTO entity, int userId, string? userRole);
         Task<ApiResponse<string>> UpdateAsync(int id, UpdateDocumentDTO entity);
         Task<ApiResponse<bool>> DeleteAsync(int id, int userId, string? userRole);
         Task<IQueryable<UserDocumentListDTO>> GetDocumentsForUserQueryableAsync();

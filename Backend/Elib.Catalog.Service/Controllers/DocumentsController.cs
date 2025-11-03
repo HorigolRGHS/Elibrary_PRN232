@@ -78,10 +78,11 @@ namespace Elib.Catalog.Service.Controllers
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
             
-            // Get user ID from bearer token claims
+            // Get user ID and role from bearer token claims
             var userId = User.GetUserIdOrThrow();
+            var userRole = User.FindFirstValue(ClaimTypes.Role);
             
-            var resp = await _service.CreateAsync(dto, userId);
+            var resp = await _service.CreateAsync(dto, userId, userRole);
             return Ok(resp);
         }
 
@@ -161,3 +162,4 @@ namespace Elib.Catalog.Service.Controllers
 
     }
 }
+
