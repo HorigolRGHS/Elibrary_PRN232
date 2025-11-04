@@ -43,6 +43,9 @@ builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<IViewTrackingService, ViewTrackingService>();
 builder.Services.AddScoped<EnrichDocumentUserNamesFilter>();
 
+builder.Services.AddControllers().AddJsonOptions(options
+=> options.JsonSerializerOptions.PropertyNamingPolicy = null);
+
 // In-memory cache for view tracking (1 user = 1 view/day)
 builder.Services.AddMemoryCache();
 
@@ -51,7 +54,7 @@ builder.Services.AddJwtAuthSwagger();
 
 var modelBuilder = new ODataConventionModelBuilder();
 modelBuilder.EntitySet<AdminDocumentListDTO>("Documents");
-modelBuilder.EntitySet<Category>("Category");
+modelBuilder.EntitySet<CategoryReadDTO>("Categories");
 modelBuilder.EntitySet<Subject>("Subject");
 builder.Services.AddControllers()
     .AddOData(options => options
