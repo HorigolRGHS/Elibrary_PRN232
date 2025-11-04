@@ -74,6 +74,12 @@ const sidebarConfig: SidebarGroupConfig[] = [
         description: "View reports and analytics",
       },
       {
+        title: "Subjects",
+        href: "/dashboard/subjects",
+        icon: FolderOpen,
+        description: "Manage subjects",
+      },
+      {
         title: "Categories",
         href: "/dashboard/categories",
         icon: FolderOpen,

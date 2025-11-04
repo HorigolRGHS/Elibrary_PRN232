@@ -5,6 +5,9 @@ using Microsoft.AspNetCore.Mvc;
 using SharedLibrary.Commons;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.OData.Query;
+using Elib.Catalog.Service.Models;
+using System.Linq;
 
 namespace Elib.Catalog.Service.Controllers
 {
@@ -21,96 +24,83 @@ namespace Elib.Catalog.Service.Controllers
 
         // GET: api/Subjects
         [AllowAnonymous]
+        [EnableQuery]
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<SubjectReadDTO>>> GetSubjects()
+        public ActionResult<IQueryable<SubjectReadDTO>> GetSubjects()
         {
-            var response = await _subjectService.GetAllAsync();
-            if (response.Success)
-            {
-                return Ok(response.Data);
-            }
-            return StatusCode(StatusCodes.Status500InternalServerError, response.Message);
+            var query = _subjectService.GetAllQueryable();
+            return Ok(query);
         }
 
         // GET: api/Subjects/5
         [AllowAnonymous]
         [HttpGet("{id}")]
-        public async Task<ActionResult<SubjectReadDTO>> GetSubject(int id)
+        public async Task<ActionResult<ApiResponse<SubjectReadDTO>>> GetSubject(int id)
         {
             var response = await _subjectService.GetByIdAsync(id);
             if (response.Success)
             {
                 if (response.Data == null)
-                {
-                    return NotFound(response.Message);
-                }
-                return Ok(response.Data);
+                    return NotFound(response);
+
+                return Ok(response);
             }
-            return NotFound(response.Message);
+
+            return NotFound(response);
         }
 
         // POST: api/Subjects
         [Authorize(Roles = "Admin")]
         [HttpPost]
-        public async Task<ActionResult<SubjectReadDTO>> CreateSubject(SubjectCreateDTO subjectDto)
+        public async Task<ActionResult<ApiResponse<SubjectReadDTO>>> CreateSubject(SubjectCreateDTO subjectDto)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-
             var response = await _subjectService.CreateAsync(subjectDto);
             if (response.Success)
             {
-                return CreatedAtAction(nameof(GetSubject), new { id = response.Data?.SubjectId }, response.Data);
+                return CreatedAtAction(nameof(GetSubject), new { id = response.Data?.SubjectId }, response);
             }
-            return StatusCode(StatusCodes.Status500InternalServerError, response.Message);
+            return StatusCode(StatusCodes.Status500InternalServerError, response);
         }
 
         // PUT: api/Subjects/5
         [Authorize(Roles = "Admin")]
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateSubject(int id, SubjectUpdateDTO subjectDto)
+        public async Task<ActionResult<ApiResponse<SubjectReadDTO>>> UpdateSubject(int id, SubjectUpdateDTO subjectDto)
         {
-            //if (id != subjectDto.id)
-            //{
-            //    return BadRequest("Subject ID in URL does not match Subject ID in body.");
-            //}
-
             if (!ModelState.IsValid)
             {
-                return BadRequest(ModelState);
+                return BadRequest(ApiResponse<SubjectReadDTO>.Fail("Invalid model state"));
             }
 
             var response = await _subjectService.UpdateAsync(id, subjectDto);
             if (response.Success)
             {
-                return NoContent();
+                return Ok(response);
             }
 
             if (response.Message == "Subject not found")
             {
-                return NotFound(response.Message);
+                return NotFound(response);
             }
-            return StatusCode(StatusCodes.Status500InternalServerError, response.Message);
+            return StatusCode(StatusCodes.Status500InternalServerError, response);
         }
 
         // DELETE: api/Subjects/5
         [Authorize(Roles = "Admin")]
         [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteSubject(int id)
+        public async Task<ActionResult<ApiResponse<bool>>> DeleteSubject(int id)
         {
             var response = await _subjectService.DeleteAsync(id);
             if (response.Success)
             {
-                return NoContent();
+                return Ok(response);
             }
 
             if (response.Message == "Subject not found")
             {
-                return NotFound(response.Message);
+                return NotFound(response);
             }
-            return StatusCode(StatusCodes.Status500InternalServerError, response.Message);
+            return StatusCode(StatusCodes.Status500InternalServerError, response);
         }
     }
 }
