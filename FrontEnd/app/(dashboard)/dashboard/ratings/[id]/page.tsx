@@ -84,7 +84,7 @@ export default function RatingDetailPage() {
             Document
           </label>
           <p className="text-lg">
-            {rating.documentTitle || `Document #${rating.documentId}`}
+            {rating.DocumentTitle || `Document #${rating.DocumentId}`}
           </p>
         </div>
 
@@ -95,22 +95,22 @@ export default function RatingDetailPage() {
               <StarIcon
                 key={i}
                 className={`w-5 h-5 ${
-                  i < rating.starRating
+                  i < rating.StarRating
                     ? "fill-yellow-400 text-yellow-400"
                     : "text-gray-300"
                 }`}
               />
             ))}
             <span className="ml-2 text-lg font-semibold">
-              {rating.starRating}/5
+              {rating.StarRating}/5
             </span>
           </div>
         </div>
 
-        {rating.review && (
+        {rating.Review && (
           <div>
             <label className="text-sm font-medium text-gray-600">Review</label>
-            <p className="text-base mt-2 whitespace-pre-wrap">{rating.review}</p>
+            <p className="text-base mt-2 whitespace-pre-wrap">{rating.Review}</p>
           </div>
         )}
 
@@ -120,7 +120,7 @@ export default function RatingDetailPage() {
               Created By
             </label>
             <p className="text-base">
-              {rating.createdByName || `User #${rating.createdBy}`}
+              {rating.CreatedByName || `User #${rating.CreatedBy}`}
             </p>
           </div>
 
@@ -129,18 +129,18 @@ export default function RatingDetailPage() {
               Created Date
             </label>
             <p className="text-base">
-              {new Date(rating.createdDate).toLocaleString()}
+              {new Date(rating.CreatedDate).toLocaleString()}
             </p>
           </div>
         </div>
 
-        {rating.updatedDate && (
+        {rating.UpdatedDate && (
           <div>
             <label className="text-sm font-medium text-gray-600">
               Last Updated
             </label>
             <p className="text-base">
-              {new Date(rating.updatedDate).toLocaleString()}
+              {new Date(rating.UpdatedDate).toLocaleString()}
             </p>
           </div>
         )}

@@ -6,7 +6,7 @@ import { useCategories } from "@/hooks/useCategories";
 import { CategoryService } from "@/services/category/Category";
 import { useRouter } from "next/navigation";
 import { getAuthToken } from "@/api/apiClient";
-import { Folder, Plus, RefreshCw, Edit2, Trash2 } from "lucide-react";
+import { Folder, Plus, RefreshCw, Edit2, Trash2, Eye } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -190,11 +190,11 @@ export default function Page() {
                 </TableHeader>
                 <TableBody>
                   {categories.map((c: any, idx: number) => (
-                    <TableRow key={`${c.categoryId ?? "cat"}-${idx}`}>
-                      <TableCell className="font-medium">{c.categoryId}</TableCell>
-                      <TableCell>{c.categoryName}</TableCell>
+                    <TableRow key={`${c.CategoryId ?? "cat"}-${idx}`}>
+                      <TableCell className="font-medium">{c.CategoryId}</TableCell>
+                      <TableCell>{c.CategoryName}</TableCell>
                       <TableCell className="text-muted-foreground text-sm max-w-xs truncate">
-                        {(c as any).description || "—"}
+                        {(c as any).Description || "—"}
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center justify-end gap-2">
@@ -203,7 +203,17 @@ export default function Page() {
                             size="sm" 
                             asChild
                           >
-                            <Link href={`/dashboard/categories/${c.categoryId}`}>
+                            <Link href={`/dashboard/categories/${c.CategoryId}`}>
+                              <Eye className="size-4 mr-1" />
+                              View
+                            </Link>
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            asChild
+                          >
+                            <Link href={`/dashboard/categories/${c.CategoryId}`}>
                               <Edit2 className="size-4 mr-1" />
                               Edit
                             </Link>
@@ -213,11 +223,11 @@ export default function Page() {
                               variant="ghost"
                               size="sm"
                               className="text-destructive hover:text-destructive"
-                              onClick={() => openDeleteConfirm(c.categoryId)}
-                              disabled={deletingId === c.categoryId}
+                              onClick={() => openDeleteConfirm(c.CategoryId)}
+                              disabled={deletingId === c.CategoryId}
                             >
                               <Trash2 className="size-4 mr-1" />
-                              {deletingId === c.categoryId ? "Deleting..." : "Delete"}
+                              {deletingId === c.CategoryId ? "Deleting..." : "Delete"}
                             </Button>
                           ) : (
                             <Button 

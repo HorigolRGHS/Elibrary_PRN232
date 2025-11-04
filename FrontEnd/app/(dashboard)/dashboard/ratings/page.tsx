@@ -88,33 +88,34 @@ export default function RatingsPage() {
               </TableRow>
             ) : (
               ratings.map((rating) => (
-                <TableRow key={rating.ratingId}>
-                  <TableCell>{rating.documentId}</TableCell>
+                <TableRow key={rating.RatingId}>
+                  <TableCell>{rating.DocumentId}</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
                       {Array.from({ length: 5 }).map((_, i) => (
                         <StarIcon
                           key={i}
                           className={`w-4 h-4 ${
-                            i < rating.starRating
+                            i < rating.StarRating
                               ? "fill-yellow-400 text-yellow-400"
                               : "text-gray-300"
                           }`}
                         />
                       ))}
-                      <span className="ml-2">({rating.starRating})</span>
+                      <span className="ml-2">({rating.StarRating})</span>
                     </div>
                   </TableCell>
                   <TableCell className="max-w-xs truncate">
-                    {rating.review || "No review"}
+                    {rating.Review || "No review"}
                   </TableCell>
                   <TableCell>
-                    {new Date(rating.createdDate).toLocaleDateString()}
+                    {new Date(rating.CreatedDate).toLocaleDateString()}
                   </TableCell>
                   <TableCell>
-                    <Link href={`/dashboard/ratings/${rating.ratingId}`}>
+                    <Link href={`/dashboard/ratings/${rating.RatingId}`}>
                       <Button variant="ghost" size="sm">
-                        <Eye className="w-4 h-4" />
+                        <Eye className="w-4 h-4 mr-1" />
+                        View
                       </Button>
                     </Link>
                   </TableCell>

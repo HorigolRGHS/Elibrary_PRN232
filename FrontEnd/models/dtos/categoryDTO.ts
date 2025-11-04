@@ -1,13 +1,13 @@
 export type CategoryReadDTO = {
-  categoryId: number;
-  categoryName: string;
-  description?: string;
-  createdDate: string;
-  updatedDate: string;
+  CategoryId: number;
+  CategoryName: string;
+  Description?: string;
+  CreatedDate: string;
+  UpdatedDate: string;
 };
 
 export type CategorySelect = {
-  categoryId: number;
-  categoryName: string;
-  description?: string;
+  CategoryId: number;
+  CategoryName: string;
+  Description?: string;
 };

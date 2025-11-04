@@ -1,22 +1,22 @@
 export type RatingSelect = {
-  ratingId: number;
-  documentId: number;
-  starRating: number;
-  review?: string;
-  createdBy: number;
-  createdDate: string;
+  RatingId: number;
+  DocumentId: number;
+  StarRating: number;
+  Review?: string;
+  CreatedBy: number;
+  CreatedDate: string;
 };
 
 export type RatingReadDTO = {
-  ratingId: number;
-  documentId: number;
-  documentTitle?: string;
-  starRating: number;
-  review?: string;
-  createdBy: number;
-  createdByName?: string;
-  createdDate: string;
-  updatedDate?: string;
+  RatingId: number;
+  DocumentId: number;
+  DocumentTitle?: string;
+  StarRating: number;
+  Review?: string;
+  CreatedBy: number;
+  CreatedByName?: string;
+  CreatedDate: string;
+  UpdatedDate?: string;
 };
 
 export type RatingCreateRequest = {

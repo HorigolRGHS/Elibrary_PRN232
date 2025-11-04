@@ -50,8 +50,8 @@ export default function CategoryDetailPage() {
         }
 
         setCategory(data);
-        setName(data.categoryName);
-        setDescription((data as any).description || "");
+        setName(data.CategoryName);
+        setDescription((data as any).Description || "");
       } catch (err) {
         console.error(err);
         alert("Unable to load category");
@@ -137,7 +137,7 @@ export default function CategoryDetailPage() {
               <div>
                 <label className="block text-sm font-medium mb-2">Category ID</label>
                 <div className="px-3 py-2 bg-muted rounded border border-muted-foreground/20 text-sm">
-                  {category.categoryId}
+                  {category.CategoryId}
                 </div>
               </div>
 

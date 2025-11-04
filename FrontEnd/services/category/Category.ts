@@ -3,48 +3,23 @@ import apiClient from "@/api/apiClient";
 import buildQuery from "odata-query";
 import { CategorySelect, CategoryReadDTO } from "@/models/dtos/categoryDTO";
 
-const toSelect = (item: any): CategorySelect => {
-    return {
-        categoryId: item.categoryId ?? item.CategoryId ?? item.id ?? 0,
-        categoryName: item.categoryName ?? item.CategoryName ?? item.Name ?? "",
-        description: item.description ?? item.Description ?? undefined,
-    };
-};
-
-const toRead = (item: any): CategoryReadDTO => {
-    return {
-        categoryId: item.categoryId ?? item.CategoryId ?? item.id ?? 0,
-        categoryName: item.categoryName ?? item.CategoryName ?? item.Name ?? "",
-        description: item.description ?? item.Description ?? undefined,
-        createdDate: item.createdDate ?? item.CreatedDate ?? (item.createdAt ?? ""),
-        updatedDate: item.updatedDate ?? item.UpdatedDate ?? (item.updatedAt ?? ""),
-    };
-};
-
-
-
 export const CategoryService = {
-    // NOTE: removed OPTIONS preflight probing (supportsItemMethods) to avoid triggering server OPTIONS
-    // The frontend will rely on admin role checks and handle failures from actual PUT/DELETE requests.
     getSelectCategories: async (): Promise<CategorySelect[]> => {
-        const data = await api.get<any[]>(`/catalog/api/categories`);
-        return (data || []).map(toSelect);
+        return await api.get<CategorySelect[]>(`/catalog/api/categories`);
     },
 
-    // full read DTO list (if backend returns more fields)
     getAll: async (): Promise<CategoryReadDTO[]> => {
-        const data = await api.get<any[]>(`/catalog/api/categories`);
-        return (data || []).map(toRead);
+        return await api.get<CategoryReadDTO[]>(`/catalog/api/categories`);
     },
 
     getById: async (id: number): Promise<CategoryReadDTO> => {
   try {
     console.debug('[CategoryService] trying GET', `/catalog/api/categories/(${id})`);
-    const raw = await api.get<any>(`/catalog/api/categories/(${id})`);
+    const raw = await api.get<CategoryReadDTO>(`/catalog/api/categories/(${id})`);
     const item = _extractItemById(raw, id);
     if (item) {
       console.debug('[CategoryService] success GET', `/catalog/api/categories/(${id})`, item);
-      return toRead(item);
+      return item;
     }
   } catch (err: any) {
     console.error('[CategoryService] GET failed', `/catalog/api/categories/(${id})`, err?.message);
@@ -54,9 +29,9 @@ export const CategoryService = {
   // Fallback: GET list rồi tìm local theo id
   try {
     console.debug('[CategoryService] fallback: GET list to locate item', id);
-    const list = await api.get<any[]>(`/catalog/api/categories`);
+    const list = await api.get<CategoryReadDTO[]>(`/catalog/api/categories`);
     const found = _extractItemById(list, id);
-    if (found) return toRead(found);
+    if (found) return found;
   } catch (listErr: any) {
     console.error('[CategoryService] fallback list GET failed', listErr?.message);
   }
@@ -98,13 +73,13 @@ export const CategoryService = {
     getAdminList: async (params?: { select?: string[]; filter?: any; top?: number; skip?: number }) => {
         const qs = params ? buildQuery(params) : "";
         const res = await api.get<any>(`/catalog/odata/categories${qs}`);
-        const items = (res?.value || []).map((it: any) => toRead(it));
+        const items: CategoryReadDTO[] = res?.value || [];
         const pageSize = params?.top ?? 10;
         const page = params?.skip ? Math.floor((params.skip as number) / pageSize) + 1 : 1;
         return { items, totalCount: res?.["@odata.count"] ?? 0, page, pageSize };
     },
 
-    getAdminItem: async (id: number) => {
+    getAdminItem: async (id: number): Promise<CategoryReadDTO> => {
   const attempted: string[] = [];
   let lastErr: any = null;
 
@@ -113,9 +88,9 @@ export const CategoryService = {
   attempted.push(queryUrl);
   try {
     console.debug('[CategoryService] trying fallback GET', queryUrl);
-    const raw = await api.get<any>(queryUrl);
-    const item = _extractItemById(raw, id); // 🔧 lọc theo id
-    if (item) return toRead(item);
+    const raw = await api.get<CategoryReadDTO>(queryUrl);
+    const item = _extractItemById(raw, id);
+    if (item) return item;
   } catch (err: any) {
     lastErr = lastErr || err;
     if (err?.response?.status !== 404) throw err;
@@ -126,9 +101,9 @@ export const CategoryService = {
   attempted.push(adminUrl);
   try {
     console.debug('[CategoryService] trying GET admin item', adminUrl);
-    const raw = await api.get<any>(adminUrl);
-    const item = _extractItemById(raw, id); // 🔧 lọc theo id
-    if (item) return toRead(item);
+    const raw = await api.get<CategoryReadDTO>(adminUrl);
+    const item = _extractItemById(raw, id);
+    if (item) return item;
   } catch (err: any) {
     lastErr = lastErr || err;
     if (err?.response?.status !== 404) throw err;
@@ -137,9 +112,9 @@ export const CategoryService = {
   // Fallback: GET list rồi tìm local
   try {
     console.debug('[CategoryService] fallback: GET list to locate admin item', id);
-    const list = await api.get<any[]>(`/catalog/api/categories`);
-    const found = _extractItemById(list, id); // 🔧 lọc theo id
-    if (found) return toRead(found);
+    const list = await api.get<CategoryReadDTO[]>(`/catalog/api/categories`);
+    const found = _extractItemById(list, id);
+    if (found) return found;
   } catch (listErr) {
     lastErr = lastErr || listErr;
   }

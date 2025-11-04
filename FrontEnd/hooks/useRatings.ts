@@ -34,8 +34,8 @@ export const useRatings = () => {
         if (searchTerm) {
           filtered = filtered.filter(
             (r) =>
-              r.documentId.toString().includes(searchTerm) ||
-              r.starRating.toString().includes(searchTerm)
+              r.DocumentId.toString().includes(searchTerm) ||
+              r.StarRating.toString().includes(searchTerm)
           );
         }
 
