@@ -20,9 +20,11 @@
     },
     {
       "UpstreamPathTemplate": "/interaction/{everything}",
-      "UpstreamHttpMethod": ["GET", "POST", "PUT", "DELETE"],
-      "DownstreamPathTemplate": "/api/{everything}",
-      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 7004 }]
+      "UpstreamHttpMethod": [ "GET", "POST", "PUT" ],
+      "DownstreamPathTemplate": "/{everything}",
+      "DownstreamHostAndPorts": [
+        { "Host": "localhost", "Port": 7004 }
+      ]
     },
     {
       "UpstreamPathTemplate": "/file/{everything}",

@@ -13,7 +13,5 @@ namespace Elib.Interaction.Service.DTOs
 
         [StringLength(1000, ErrorMessage = "Review cannot exceed 1000 characters")]
         public string? Review { get; set; }
-
-        public int? CreatedBy { get; set; }
     }
 }

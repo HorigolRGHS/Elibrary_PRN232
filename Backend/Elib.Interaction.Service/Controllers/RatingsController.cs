@@ -45,7 +45,11 @@ namespace Elib.Interaction.Service.Controllers
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
             var created = await _service.CreateAsync(dto);
-            return Created(created);
+            return CreatedAtAction(
+                nameof(Get),
+                new { key = created.RatingId },
+                created
+                );
         }
 
         // PUT /Ratings(5)

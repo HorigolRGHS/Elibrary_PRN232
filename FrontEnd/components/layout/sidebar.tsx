@@ -13,7 +13,8 @@ import {
   Settings,
   X,
   ChevronRight,
-  type LucideIcon,
+  Star,
+  type LucideIcon
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -77,6 +78,12 @@ const sidebarConfig: SidebarGroupConfig[] = [
         href: "/dashboard/categories",
         icon: FolderOpen,
         description: "Manage categories",
+      },
+      {
+        title: "Ratings",
+        href: "/dashboard/ratings",
+        icon: Star,
+        description: "Manage document ratings",
       },
     ],
   },
