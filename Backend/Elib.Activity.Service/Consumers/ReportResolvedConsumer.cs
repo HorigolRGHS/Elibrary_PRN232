@@ -45,17 +45,17 @@ namespace Elib.Activity.Service.Consumers
 
                 if (result.Success)
                 {
-                    Console.WriteLine($"[ReportResolvedConsumer] 🕒 Notification scheduled at {vnNow:yyyy-MM-dd HH:mm:ss} (VN time)");
-                    Console.WriteLine($"[ReportResolvedConsumer] ✅ Custom notification sent to userId={msg.ReportedBy} for ReportId={msg.ReportId}");
+                    Console.WriteLine($"[ReportResolvedConsumer] Notification scheduled at {vnNow:yyyy-MM-dd HH:mm:ss} (VN time)");
+                    Console.WriteLine($"[ReportResolvedConsumer] Custom notification sent to userId={msg.ReportedBy} for ReportId={msg.ReportId}");
                 }
                 else
                 {
-                    Console.WriteLine($"[ReportResolvedConsumer] ⚠️ Failed to send notification: {result.Message}");
+                    Console.WriteLine($"[ReportResolvedConsumer] Failed to send notification: {result.Message}");
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[ReportResolvedConsumer] ❌ Error while handling ReportId={msg.ReportId}: {ex.Message}");
+                Console.WriteLine($"[ReportResolvedConsumer] Error while handling ReportId={msg.ReportId}: {ex.Message}");
             }
         }
     }
