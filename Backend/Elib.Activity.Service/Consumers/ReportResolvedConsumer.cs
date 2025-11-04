@@ -2,6 +2,7 @@
 using SharedLibrary.Messages;
 using Elib.Activity.Service.Services;
 using Elib.Activity.Service.DTOs;
+using System.Runtime.InteropServices;
 
 namespace Elib.Activity.Service.Consumers
 {
@@ -23,12 +24,20 @@ namespace Elib.Activity.Service.Consumers
 
             try
             {
+                var vietnamZone = TimeZoneInfo.FindSystemTimeZoneById(
+                    RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+                        ? "SE Asia Standard Time"
+                        : "Asia/Ho_Chi_Minh"
+                );
+
+
+                var vnNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vietnamZone);
+
                 var dto = new NotificationCreateCustomDTO
                 {
                     Title = "Your report has been resolved",
                     Content = $"Your report \"{msg.ReportTitle}\" has been reviewed and resolved by the admin. Thank you for your feedback!",
-                    ScheduledDate = DateTime.UtcNow,
-                    //CreatedBy = msg.ResolvedBy,
+                    ScheduledDate = vnNow, 
                     RecipientUserIds = new List<int> { msg.ReportedBy }
                 };
 
@@ -36,16 +45,17 @@ namespace Elib.Activity.Service.Consumers
 
                 if (result.Success)
                 {
-                    Console.WriteLine($"[ReportResolvedConsumer]  Custom notification sent to userId={msg.ReportedBy} for ReportId={msg.ReportId}");
+                    Console.WriteLine($"[ReportResolvedConsumer] 🕒 Notification scheduled at {vnNow:yyyy-MM-dd HH:mm:ss} (VN time)");
+                    Console.WriteLine($"[ReportResolvedConsumer] ✅ Custom notification sent to userId={msg.ReportedBy} for ReportId={msg.ReportId}");
                 }
                 else
                 {
-                    Console.WriteLine($"[ReportResolvedConsumer] Failed to send notification: {result.Message}");
+                    Console.WriteLine($"[ReportResolvedConsumer] ⚠️ Failed to send notification: {result.Message}");
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[ReportResolvedConsumer] Error while handling ReportId={msg.ReportId}: {ex.Message}");
+                Console.WriteLine($"[ReportResolvedConsumer] ❌ Error while handling ReportId={msg.ReportId}: {ex.Message}");
             }
         }
     }

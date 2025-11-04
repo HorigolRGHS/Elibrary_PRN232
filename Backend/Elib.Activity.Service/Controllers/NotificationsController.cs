@@ -35,6 +35,8 @@ namespace Elib.Activity.Service.Controllers
         [HttpGet]
         [Authorize(Roles = "Admin")]
         public IActionResult GetNotifications(
+                           [FromQuery(Name = "$filter")] string? filter,
+                           [FromQuery(Name = "$orderby")] string? orderby,
                            [FromQuery(Name = "$skip")] int? skip,
                            [FromQuery(Name = "$top")] int? top,
                            [FromQuery(Name = "$count")] bool? count)
@@ -46,13 +48,33 @@ namespace Elib.Activity.Service.Controllers
 
             var includeCount = count.GetValueOrDefault(true);
 
-            var query = _notificationService.AsQueryable()
-                .OrderByDescending(n => n.CreatedDate)
-                .Skip(s)
-                .Take(t);
+
+            IQueryable<NotificationDTO> query = _notificationService.AsQueryable();
+
+            // Apply $filter 
+            if (!string.IsNullOrWhiteSpace(filter))
+            {
+                query = ApplyODataFilter(query, filter);
+            }
+
+            // Get total 
+            var total = includeCount ? query.Count() : (int?)null;
+
+            // Apply $orderby 
+            if (!string.IsNullOrWhiteSpace(orderby))
+            {
+                query = ApplyODataOrderBy(query, orderby);
+            }
+            else
+            {
+                query = query.OrderByDescending(n => n.CreatedDate);
+            }
+
+            // Apply paging
+            query = query.Skip(s).Take(t);
 
             var items = query.ToList();
-            var total = includeCount ? _notificationService.AsQueryable().Count() : (int?)null;
+
 
             var result = new
             {
@@ -63,6 +85,116 @@ namespace Elib.Activity.Service.Controllers
             };
 
             return Ok(ApiResponse<object>.Ok(result));
+        }
+
+        /// <summary>
+        /// Simple OData $filter parser for common cases
+        /// Supports: contains(tolower(field), 'value') and field eq 'value'
+        /// </summary>
+        private IQueryable<NotificationDTO> ApplyODataFilter(IQueryable<NotificationDTO> query, string filter)
+        {
+            // Split by " and "
+            var conditions = filter.Split(" and ", StringSplitOptions.RemoveEmptyEntries);
+
+            foreach (var condition in conditions)
+            {
+                var trimmed = condition.Trim();
+
+                // Pattern: contains(tolower(FieldName), 'value')
+                if (trimmed.StartsWith("contains(tolower("))
+                {
+                    // Extract field name and value
+                    var match = System.Text.RegularExpressions.Regex.Match(trimmed, @"contains\(tolower\((\w+)\),\s*'([^']*)'\)");
+                    if (match.Success)
+                    {
+                        var fieldName = match.Groups[1].Value;
+                        var value = match.Groups[2].Value.Replace("''", "'"); // Unescape quotes
+
+                        if (fieldName.Equals("Title", StringComparison.OrdinalIgnoreCase))
+                        {
+                            var valueLower = value.ToLower();
+                            query = query.Where(n => n.Title.ToLower().Contains(valueLower));
+                        }
+                        else if (fieldName.Equals("Content", StringComparison.OrdinalIgnoreCase))
+                        {
+                            var valueLower = value.ToLower();
+                            query = query.Where(n => n.Content.ToLower().Contains(valueLower));
+                        }
+                    }
+                }
+                // Pattern: FieldName eq 'value'
+                else if (trimmed.Contains(" eq "))
+                {
+                    var parts = trimmed.Split(" eq ", StringSplitOptions.RemoveEmptyEntries);
+                    if (parts.Length == 2)
+                    {
+                        var fieldName = parts[0].Trim();
+                        var value = parts[1].Trim().Trim('\''); // Remove quotes
+
+                        if (fieldName.Equals("Type", StringComparison.OrdinalIgnoreCase))
+                        {
+                            query = query.Where(n => n.Type == value);
+                        }
+                        else if (fieldName.Equals("Status", StringComparison.OrdinalIgnoreCase))
+                        {
+                            query = query.Where(n => n.Status == value);
+                        }
+                    }
+                }
+            }
+
+            return query;
+        }
+
+        /// <summary>
+        /// Simple OData $orderby parser
+        /// Supports: field asc|desc and multiple fields
+        /// </summary>
+        private IQueryable<NotificationDTO> ApplyODataOrderBy(IQueryable<NotificationDTO> query, string orderby)
+        {
+            // Split by comma for multiple sort fields
+            var orderClauses = orderby.Split(",", StringSplitOptions.RemoveEmptyEntries);
+
+            bool isFirst = true;
+            foreach (var clause in orderClauses)
+            {
+                var parts = clause.Trim().Split(" ", StringSplitOptions.RemoveEmptyEntries);
+                if (parts.Length < 1) continue;
+
+                var fieldName = parts[0];
+                var direction = parts.Length > 1 ? parts[1].ToLower() : "asc";
+
+                if (fieldName.Equals("CreatedDate", StringComparison.OrdinalIgnoreCase))
+                {
+                    query = isFirst
+                        ? (direction == "desc" ? query.OrderByDescending(n => n.CreatedDate) : query.OrderBy(n => n.CreatedDate))
+                        : (direction == "desc" ? ((IOrderedQueryable<NotificationDTO>)query).ThenByDescending(n => n.CreatedDate) : ((IOrderedQueryable<NotificationDTO>)query).ThenBy(n => n.CreatedDate));
+                    isFirst = false;
+                }
+                else if (fieldName.Equals("Title", StringComparison.OrdinalIgnoreCase))
+                {
+                    query = isFirst
+                        ? (direction == "desc" ? query.OrderByDescending(n => n.Title) : query.OrderBy(n => n.Title))
+                        : (direction == "desc" ? ((IOrderedQueryable<NotificationDTO>)query).ThenByDescending(n => n.Title) : ((IOrderedQueryable<NotificationDTO>)query).ThenBy(n => n.Title));
+                    isFirst = false;
+                }
+                else if (fieldName.Equals("Type", StringComparison.OrdinalIgnoreCase))
+                {
+                    query = isFirst
+                        ? (direction == "desc" ? query.OrderByDescending(n => n.Type) : query.OrderBy(n => n.Type))
+                        : (direction == "desc" ? ((IOrderedQueryable<NotificationDTO>)query).ThenByDescending(n => n.Type) : ((IOrderedQueryable<NotificationDTO>)query).ThenBy(n => n.Type));
+                    isFirst = false;
+                }
+                else if (fieldName.Equals("Status", StringComparison.OrdinalIgnoreCase))
+                {
+                    query = isFirst
+                        ? (direction == "desc" ? query.OrderByDescending(n => n.Status) : query.OrderBy(n => n.Status))
+                        : (direction == "desc" ? ((IOrderedQueryable<NotificationDTO>)query).ThenByDescending(n => n.Status) : ((IOrderedQueryable<NotificationDTO>)query).ThenBy(n => n.Status));
+                    isFirst = false;
+                }
+            }
+
+            return query;
         }
 
         //// GET: api/Notifications

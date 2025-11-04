@@ -46,7 +46,8 @@ builder.Services.AddMassTransit(cfg =>
     cfg.AddRequestClient<CatalogTitlesRequest>();
     cfg.AddRequestClient<CatalogCountersRequest>();
     cfg.AddRequestClient<UserCountersRequest>();
-    cfg.AddRequestClient<TopDownloadsRequest>(new Uri("queue:activity.top-downloads"));
+    cfg.AddRequestClient<UserFullNamesRequest>();
+    cfg.AddRequestClient<TopDownloadsRequest>(new Uri("queue:catalog.top-downloads.request"));
 
     cfg.UsingRabbitMq((context, bus) =>
     {

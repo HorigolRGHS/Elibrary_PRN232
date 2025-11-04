@@ -19,5 +19,6 @@ namespace Elib.Activity.Service.Services
         Task<ApiResponse<bool>> MarkAsViewedAsync(int notificationId);
 
         IQueryable<int> GetCustomIdsForUser(int userId);
+
     }
 }

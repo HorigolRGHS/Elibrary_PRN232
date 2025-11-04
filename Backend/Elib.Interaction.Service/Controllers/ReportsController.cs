@@ -6,7 +6,6 @@ using Microsoft.AspNetCore.OData.Query;
 using Elib.Interaction.Service.Services;
 using Elib.Interaction.Service.DTOs;
 using SharedLibrary.Commons;
-using Elib.Interaction.Service.DTOs.Elib.Interaction.Service.DTOs;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 
 namespace Elib.Interaction.Service.Controllers
@@ -28,6 +27,8 @@ namespace Elib.Interaction.Service.Controllers
         [HttpGet]
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "Admin,Customer")]
         public IActionResult GetReports(
+            [FromQuery(Name = "$filter")] string? filter,
+            [FromQuery(Name = "$orderby")] string? orderby,
             [FromQuery(Name = "$skip")] int? skip,
             [FromQuery(Name = "$top")] int? top,
             [FromQuery(Name = "$count")] bool? count)
@@ -39,13 +40,31 @@ namespace Elib.Interaction.Service.Controllers
 
             var includeCount = count.GetValueOrDefault(true);
 
-            var query = _reportService.AsQueryable()
-                .OrderByDescending(r => r.CreatedDate)
-                .Skip(s)
-                .Take(t);
+            IQueryable<ReportDTO> query = _reportService.AsQueryable();
+
+            // Apply $filter if provided
+            if (!string.IsNullOrWhiteSpace(filter))
+            {
+                query = ApplyODataFilter(query, filter);
+            }
+
+            // Get total count before paging
+            var total = includeCount ? query.Count() : (int?)null;
+
+            // Apply $orderby if provided, otherwise default to CreatedDate desc
+            if (!string.IsNullOrWhiteSpace(orderby))
+            {
+                query = ApplyODataOrderBy(query, orderby);
+            }
+            else
+            {
+                query = query.OrderByDescending(r => r.CreatedDate);
+            }
+
+            // Apply paging
+            query = query.Skip(s).Take(t);
 
             var items = query.ToList();
-            var total = includeCount ? _reportService.AsQueryable().Count() : (int?)null;
 
             var result = new
             {
@@ -56,6 +75,77 @@ namespace Elib.Interaction.Service.Controllers
             };
 
             return Ok(ApiResponse<object>.Ok(result));
+        }
+
+        /// <summary>
+        /// Simple OData $filter parser
+        /// Supports: documentId eq X, status eq 'value'
+        /// </summary>
+        private IQueryable<ReportDTO> ApplyODataFilter(IQueryable<ReportDTO> query, string filter)
+        {
+            var conditions = filter.Split(" and ", StringSplitOptions.RemoveEmptyEntries);
+
+            foreach (var condition in conditions)
+            {
+                var trimmed = condition.Trim();
+
+                // Pattern: documentId eq X
+                if (trimmed.StartsWith("documentId eq "))
+                {
+                    var parts = trimmed.Split(" eq ", StringSplitOptions.RemoveEmptyEntries);
+                    if (parts.Length == 2 && int.TryParse(parts[1].Trim(), out var documentId))
+                    {
+                        query = query.Where(r => r.DocumentId == documentId);
+                    }
+                }
+                // Pattern: status eq 'value'
+                else if (trimmed.StartsWith("status eq "))
+                {
+                    var parts = trimmed.Split(" eq ", StringSplitOptions.RemoveEmptyEntries);
+                    if (parts.Length == 2)
+                    {
+                        var value = parts[1].Trim().Trim('\'');
+                        query = query.Where(r => r.Status == value);
+                    }
+                }
+            }
+
+            return query;
+        }
+
+        /// <summary>
+        /// Simple OData $orderby parser
+        /// Supports: field asc|desc
+        /// </summary>
+        private IQueryable<ReportDTO> ApplyODataOrderBy(IQueryable<ReportDTO> query, string orderby)
+        {
+            var clauses = orderby.Split(",", StringSplitOptions.RemoveEmptyEntries);
+
+            bool isFirst = true;
+            foreach (var clause in clauses)
+            {
+                var parts = clause.Trim().Split(" ", StringSplitOptions.RemoveEmptyEntries);
+                if (parts.Length == 0) continue;
+
+                var fieldName = parts[0];
+                var direction = parts.Length > 1 ? parts[1].ToLower() : "asc";
+
+                if (isFirst)
+                {
+                    if (fieldName.Equals("createdDate", StringComparison.OrdinalIgnoreCase))
+                        query = direction == "desc" ? query.OrderByDescending(r => r.CreatedDate) : query.OrderBy(r => r.CreatedDate);
+                    else if (fieldName.Equals("documentId", StringComparison.OrdinalIgnoreCase))
+                        query = direction == "desc" ? query.OrderByDescending(r => r.DocumentId) : query.OrderBy(r => r.DocumentId);
+                    else if (fieldName.Equals("status", StringComparison.OrdinalIgnoreCase))
+                        query = direction == "desc" ? query.OrderByDescending(r => r.Status) : query.OrderBy(r => r.Status);
+                    else if (fieldName.Equals("createdBy", StringComparison.OrdinalIgnoreCase))
+                        query = direction == "desc" ? query.OrderByDescending(r => r.CreatedBy) : query.OrderBy(r => r.CreatedBy);
+                    
+                    isFirst = false;
+                }
+            }
+
+            return query;
         }
 
         // ===============================================

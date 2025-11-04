@@ -84,7 +84,7 @@ function VerticalBarChart({
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-medium">{title}</h3>
       </div>
-  <div className="w-full flex gap-4 items-end h-64 lg:h-80">
+      <div className="w-full flex gap-2 items-end h-64 lg:h-80 overflow-hidden">
         {items.map((it) => {
           const safeValue = Math.max(0, Number(it.value) || 0);
           const maxNumeric = Math.max(1, Number(max) || 1);
@@ -92,26 +92,32 @@ function VerticalBarChart({
           const bottomFlex = Math.max(0.0001, safeValue); // avoid zero flex which may collapse
 
           return (
-            <div key={it.label} className="flex-1 flex flex-col items-center h-full">
+            <div
+              key={it.label}
+              className="flex-1 flex flex-col items-center h-full min-w-0"
+            >
               {/* numeric value */}
-              <div className="mb-2 text-sm font-medium text-slate-700 dark:text-slate-200">
+              <div className="mb-2 text-xs font-medium text-slate-700 dark:text-slate-200">
                 {valueFormatter ? valueFormatter(it.value) : it.value}
               </div>
 
               {/* bar area: use flex column with spacer and filled bar so heights are proportional */}
-              <div className="w-full h-full flex flex-col rounded-t-md overflow-hidden" style={{ background: 'transparent' }}>
+              <div
+                className="w-full h-full flex flex-col rounded-t-md overflow-hidden"
+                style={{ background: "transparent" }}
+              >
                 <div style={{ flexGrow: topFlex, minHeight: 2 }} />
                 <div
                   title={`${it.label}: ${it.value}`}
                   style={{
                     flexGrow: bottomFlex,
-                    transition: 'flex-grow 400ms, background 300ms',
-                    background: 'linear-gradient(180deg, #60a5fa, #2563eb)'
+                    transition: "flex-grow 400ms, background 300ms",
+                    background: "linear-gradient(180deg, #60a5fa, #2563eb)",
                   }}
                 />
               </div>
 
-              <div className="mt-3 text-sm text-center truncate w-full text-slate-700 dark:text-slate-200">
+              <div className="mt-2 text-xs text-center truncate w-full text-slate-700 dark:text-slate-200 px-1">
                 {it.label}
               </div>
             </div>
@@ -163,12 +169,10 @@ export default function DashboardPage() {
 
   const topRatings = useMemo(() => {
     if (!summary?.topRatings) return [] as { label: string; value: number }[];
-    return summary.topRatings
-      .slice(0, 5)
-      .map((d) => ({
-        label: d.documentTitle,
-        value: Math.round(d.avgRating * 10) / 10,
-      })) as { label: string; value: number }[];
+    return summary.topRatings.slice(0, 5).map((d) => ({
+      label: d.documentTitle,
+      value: Math.round(d.avgRating * 10) / 10,
+    })) as { label: string; value: number }[];
   }, [summary]);
 
   return (

@@ -1,11 +1,11 @@
 ﻿using AutoMapper;
-using Elib.Interaction.Service.DTOs.Elib.Interaction.Service.DTOs;
 using Elib.Interaction.Service.DTOs;
 using Elib.Interaction.Service.Models;
 using Elib.Interaction.Service.Repositories;
 using SharedLibrary.Commons;
 using MassTransit;
 using SharedLibrary.Messages;
+using System.Runtime.InteropServices;
 
 namespace Elib.Interaction.Service.Services
 {
@@ -15,13 +15,23 @@ namespace Elib.Interaction.Service.Services
         private readonly IMapper _mapper;
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly IPublishEndpoint _publishEndpoint;
+        private readonly IRequestClient<UserFullNamesRequest> _userFullNamesClient;
+        private readonly ILogger<ReportService> _logger;
 
-        public ReportService(IReportRepository repository, IMapper mapper, IHttpContextAccessor httpContextAccessor, IPublishEndpoint publishEndpoint)
+        public ReportService(
+            IReportRepository repository,
+            IMapper mapper,
+            IHttpContextAccessor httpContextAccessor,
+            IPublishEndpoint publishEndpoint,
+            IRequestClient<UserFullNamesRequest> userFullNamesClient,
+            ILogger<ReportService> logger)
         {
             _repository = repository;
             _mapper = mapper;
             _httpContextAccessor = httpContextAccessor;
             _publishEndpoint = publishEndpoint;
+            _userFullNamesClient = userFullNamesClient;
+            _logger = logger;
         }
 
         // ===============================================
@@ -49,8 +59,52 @@ namespace Elib.Interaction.Service.Services
         {
             var entities = await _repository.GetAllAsync();
             var dtos = _mapper.Map<IEnumerable<ReportDTO>>(entities);
+
+            var userIds = dtos
+                .Where(r => r.CreatedBy.HasValue)
+                .Select(r => r.CreatedBy.Value)
+                .Distinct()
+                .ToList();
+
+            if (userIds.Any())
+            {
+                try
+                {
+                    var response = await _userFullNamesClient.GetResponse<UserFullNamesResponse>(
+                        new UserFullNamesRequest(Guid.NewGuid(), userIds),
+                        timeout: RequestTimeout.After(s: 3)
+                    );
+
+                    var userFullNames = response.Message.UserFullNames;
+
+                    foreach (var dto in dtos)
+                    {
+                        if (dto.CreatedBy.HasValue &&
+                            userFullNames.TryGetValue(dto.CreatedBy.Value, out var fullName))
+                        {
+                            dto.CreatedByName = fullName;
+                        }
+                        else
+                        {
+                            dto.CreatedByName ??= "Unknown";
+                        }
+                    }
+
+                    _logger.LogDebug("Successfully enriched {Count} reports with user names", dtos.Count());
+                }
+                catch (RequestTimeoutException ex)
+                {
+                    _logger.LogWarning(ex, "RabbitMQ timeout while fetching user names for reports");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to fetch user names via RabbitMQ for reports");
+                }
+            }
+
             return ApiResponse<IEnumerable<ReportDTO>>.Ok(dtos);
         }
+
 
         // ===============================================
         // GET BY ID
@@ -101,28 +155,34 @@ namespace Elib.Interaction.Service.Services
             await _repository.UpdateAsync(entity);
             await _repository.SaveChangesAsync();
 
-            // resolved → publish event
+     
             if (dto.Status == "Resolved")
             {
                 var userIdClaim = _httpContextAccessor.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
                 int.TryParse(userIdClaim?.Value, out var resolvedBy);
 
+                var vietnamZone = TimeZoneInfo.FindSystemTimeZoneById(
+                    RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+                        ? "SE Asia Standard Time"
+                        : "Asia/Ho_Chi_Minh"
+                );
+                var vnNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vietnamZone);
+
                 var message = new ReportResolved(
                     entity.ReportId,
                     resolvedBy,
                     entity.Reason.Length > 80 ? entity.Reason[..80] + "..." : entity.Reason,
-                    DateTime.UtcNow,
+                    vnNow, 
                     entity.CreatedBy ?? 0
                 );
 
-                Console.WriteLine($"[ReportService] 📨 Publishing ReportResolved event for ReportId={message.ReportId}");
+                Console.WriteLine($"[ReportService] 📨 Publishing ReportResolved event for ReportId={message.ReportId} at {vnNow:yyyy-MM-dd HH:mm:ss}");
                 await _publishEndpoint.Publish(message);
             }
 
             var result = _mapper.Map<ReportDTO>(entity);
             return ApiResponse<ReportDTO>.Ok(result, "Report updated successfully.");
         }
-
 
         // ===============================================
         // DELETE

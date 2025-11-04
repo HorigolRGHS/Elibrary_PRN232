@@ -79,7 +79,7 @@ builder.Services.AddMassTransit(cfg =>
  
     cfg.AddConsumer<ReportResolvedConsumer>();
     cfg.AddConsumer<DocumentDownloadedConsumer>();
-    cfg.AddConsumer<TopDownloadsRequestConsumer>();
+    cfg.AddRequestClient<UserFullNamesRequest>();
 
 
     // Configure request client with timeout from settings (default 30s)
@@ -145,12 +145,6 @@ builder.Services.AddMassTransit(cfg =>
 
         });
 
-        // ======================
-        // TopDownload
-        bus.ReceiveEndpoint("activity.top-downloads", e =>
-        {
-            e.ConfigureConsumer<TopDownloadsRequestConsumer>(context);
-        });
 
     });
 });

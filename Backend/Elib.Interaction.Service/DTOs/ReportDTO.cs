@@ -1,6 +1,5 @@
-﻿namespace Elib.Interaction.Service.DTOs
-{
-    namespace Elib.Interaction.Service.DTOs
+﻿
+ namespace Elib.Interaction.Service.DTOs
     {
         public class ReportDTO
         {
@@ -9,8 +8,8 @@
             public string Reason { get; set; } = null!;
             public DateTime CreatedDate { get; set; }
             public int? CreatedBy { get; set; }
+            public string? CreatedByName { get; set; }
             public string Status { get; set; } = null!;
             public DateTime? UpdatedDate { get; set; }
         }
     }
-}

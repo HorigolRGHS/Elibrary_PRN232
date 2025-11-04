@@ -2,8 +2,10 @@
 using Elib.Activity.Service.DTOs;
 using Elib.Activity.Service.Models;
 using Elib.Activity.Service.Repositories;
+using MassTransit;
 using Microsoft.AspNetCore.Http;
 using SharedLibrary.Commons;
+using SharedLibrary.Messages;
 using System.Runtime.InteropServices;
 
 namespace Elib.Activity.Service.Services
@@ -15,18 +17,23 @@ namespace Elib.Activity.Service.Services
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly INotificationViewRepository _viewRepository;
         private readonly TimeZoneInfo _vietnamZone;
+        private readonly IRequestClient<UserFullNamesRequest> _userFullNamesClient;
+        private readonly ILogger<NotificationService> _logger;
 
         public NotificationService(
             INotificationRepository repository,
             INotificationViewRepository viewRepository,
             IMapper mapper,
-            IHttpContextAccessor httpContextAccessor)
+            IHttpContextAccessor httpContextAccessor,
+            IRequestClient<UserFullNamesRequest> userFullNamesClient,
+            ILogger<NotificationService> logger)
         {
             _repository = repository;
             _viewRepository = viewRepository;
             _mapper = mapper;
             _httpContextAccessor = httpContextAccessor;
-
+            _userFullNamesClient = userFullNamesClient;
+            _logger = logger;
 
             _vietnamZone = TimeZoneInfo.FindSystemTimeZoneById(
                 RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
@@ -38,6 +45,10 @@ namespace Elib.Activity.Service.Services
 
         public IQueryable<NotificationDTO> AsQueryable()
         {
+
+            var usernameClaim = _httpContextAccessor.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.Name);
+            string createdByName = usernameClaim?.Value ?? "Unknown User";
+
             var query = _repository.AsQueryable()
                 .Select(n => new NotificationDTO
                 {
@@ -45,6 +56,7 @@ namespace Elib.Activity.Service.Services
                     Title = n.Title,
                     Content = n.Content,
                     CreatedBy = n.CreatedBy,
+                    CreatedByName = createdByName,
                     CreatedDate = n.CreatedDate,
                     UpdatedDate = n.UpdatedDate,
                     ScheduledDate = n.ScheduledDate,
@@ -63,8 +75,52 @@ namespace Elib.Activity.Service.Services
         {
             var entities = await _repository.GetAllAsync();
             var dtos = _mapper.Map<IEnumerable<NotificationDTO>>(entities);
+
+
+            var userIds = dtos
+                .Where(d => d.CreatedBy.HasValue)
+                .Select(d => d.CreatedBy.Value)
+                .Distinct()
+                .ToList();
+
+            if (userIds.Any())
+            {
+                try
+                {
+                    // Gửi request lấy tên đầy đủ qua RabbitMQ
+                    var response = await _userFullNamesClient.GetResponse<UserFullNamesResponse>(
+                        new UserFullNamesRequest(Guid.NewGuid(), userIds),
+                        timeout: RequestTimeout.After(s: 3)
+                    );
+
+                    var userFullNames = response.Message.UserFullNames;
+
+                    foreach (var dto in dtos)
+                    {
+                        if (dto.CreatedBy.HasValue &&
+                            userFullNames.TryGetValue(dto.CreatedBy.Value, out var fullName))
+                        {
+                            dto.CreatedByName = fullName;
+                        }
+                        else
+                        {
+                            dto.CreatedByName ??= "Unknown";
+                        }
+                    }
+                }
+                catch (RequestTimeoutException ex)
+                {
+                    _logger.LogWarning(ex, "RabbitMQ timeout while fetching user names for notifications");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to fetch user names via RabbitMQ for notifications");
+                }
+            }
+
             return ApiResponse<IEnumerable<NotificationDTO>>.Ok(dtos);
         }
+
 
         // ===============================================
         // GET BY ID

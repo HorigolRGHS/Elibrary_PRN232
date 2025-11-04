@@ -4,7 +4,7 @@ namespace Elib.Activity.Service.DTOs
 {
     public class NotificationCreateCustomDTO
     {
-        [Required, MinLength(3)]
+
         public string Title { get; set; } = null!;
 
         [Required, StringLength(1000)]
