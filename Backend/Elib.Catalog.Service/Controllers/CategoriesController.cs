@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.OData.Routing.Controllers;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -46,8 +47,21 @@ namespace Elib.Catalog.Service.Controllers
         public async Task<IActionResult> Post([FromBody] CategoryCreateDTO dto)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
-            var created = await _service.CreateAsync(dto);
-            return Created(created);
+
+            try
+            {
+                var created = await _service.CreateAsync(dto);
+                return CreatedAtAction(nameof(Get), new { key = created.CategoryId }, created);
+            }
+            catch (DuplicateNameException ex)
+            {
+                return Conflict(new ProblemDetails
+                {
+                    Title = "Category name already existed",
+                    Detail = ex.Message,
+                    Status = StatusCodes.Status409Conflict
+                });
+            }
         }
 
         // PUT api/Categories/5
@@ -55,9 +69,23 @@ namespace Elib.Catalog.Service.Controllers
         [HttpPut("({key})")]
         public async Task<IActionResult> Put([FromRoute] int key, [FromBody] CategoryUpdateDTO dto)
         {
-            if (!ModelState.IsValid) return BadRequest(ModelState);
-            var ok = await _service.UpdateAsync(key, dto);
-            return ok ? NoContent() : NotFound();
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            try
+            {
+                var updated = await _service.UpdateAsync(key, dto);
+                return updated ? NoContent() : NotFound();
+            }
+            catch (DuplicateNameException ex)
+            {
+                return Conflict(new ProblemDetails
+                {
+                    Title = "Category name already existed",
+                    Detail = ex.Message,
+                    Status = StatusCodes.Status409Conflict
+                });
+            }
         }
 
         // DELETE api/Categories/5

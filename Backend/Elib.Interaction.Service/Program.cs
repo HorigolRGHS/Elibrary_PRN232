@@ -1,15 +1,16 @@
 ﻿using Elib.Interaction.Service.Data;
+using Elib.Interaction.Service.DTOs;
 using Elib.Interaction.Service.Models;
+using Elib.Interaction.Service.Profiles;
 using Elib.Interaction.Service.Repositories;
 using Elib.Interaction.Service.Services;
-using Elib.Interaction.Service.Profiles;
+using MassTransit;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OData;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OData.ModelBuilder;
 using SharedLibrary.Auths;
 using SharedLibrary.Commons;
-using MassTransit;
 using SharedLibrary.Messages;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -20,11 +21,11 @@ builder.Services.AddDbContext<InteractionDb>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")
         ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.")));
 
-
-
 builder.Services.AddScoped<DbContext, InteractionDb>();
 builder.Services.AddHttpContextAccessor();
 
+builder.Services.AddControllers().AddJsonOptions(options
+=> options.JsonSerializerOptions.PropertyNamingPolicy = null);
 
 // JWT / Auth
 builder.Services.AddJwtAuth(builder.Configuration);
@@ -88,7 +89,7 @@ builder.Services.AddScoped<ICommentService, CommentService>();
 var modelBuilder = new ODataConventionModelBuilder();
 modelBuilder.EntitySet<Comment>("Comment");
 modelBuilder.EntitySet<Report>("Report");
-modelBuilder.EntitySet<Rating>("Rating");
+modelBuilder.EntitySet<RatingReadDTO>("Ratings");
 
 builder.Services.AddControllers()
     .AddOData(options => options

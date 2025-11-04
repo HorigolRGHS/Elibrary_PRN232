@@ -9,6 +9,70 @@ const apiClient = axios.create({
   },
 });
 
+// Special client for interaction service (ratings) - bypass API Gateway
+const interactionClient = axios.create({
+  baseURL: "https://localhost:7004",
+  timeout: 30000,
+  withCredentials: true,
+  headers: {
+    'Accept': 'application/json',
+  },
+});
+
+// Apply same interceptors to interactionClient
+interactionClient.interceptors.request.use(
+  (config) => {
+    if (config.data instanceof FormData) {
+      delete config.headers["Content-Type"];
+    } else if (typeof config.data === 'object' && config.data !== null) {
+      config.headers["Content-Type"] = "application/json";
+    }
+
+    const token = typeof window !== 'undefined' ? getAuthToken() : null;
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🚀 Interaction API Request:', {
+        method: config.method?.toUpperCase(),
+        url: config.url,
+        data: config.data,
+      });
+    }
+
+    return config;
+  },
+  (error) => {
+    console.error('❌ Request Error:', error);
+    return Promise.reject(error);
+  }
+);
+
+interactionClient.interceptors.response.use(
+  (response: AxiosResponse) => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('✅ Interaction API Response:', {
+        status: response.status,
+        url: response.config.url,
+        data: response.data
+      });
+    }
+    return response;
+  },
+  (error: AxiosError) => {
+    if (error.response) {
+      const status = error.response.status;
+      console.error(`❌ Interaction API Error [${status}]:`, error.message);
+    } else if (error.request) {
+      console.error('❌ Network Error:', error.message);
+    } else {
+      console.error('❌ Request Setup Error:', error.message);
+    }
+    return Promise.reject(error);
+  }
+);
+
 apiClient.interceptors.request.use(
   (config) => {
     if (config.data instanceof FormData) {
@@ -227,6 +291,34 @@ export const api = {
       type: file.type,
     });
     return file;
+  },
+};
+
+// API methods for interaction service (ratings)
+export const interactionApi = {
+  get: async <T = any>(url: string, config?: AxiosRequestConfig): Promise<T> => {
+    const response = await interactionClient.get<T>(url, config);
+    return response.data;
+  },
+
+  post: async <T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> => {
+    const response = await interactionClient.post<T>(url, data, config);
+    return response.data;
+  },
+
+  put: async <T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> => {
+    const response = await interactionClient.put<T>(url, data, config);
+    return response.data;
+  },
+
+  patch: async <T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> => {
+    const response = await interactionClient.patch<T>(url, data, config);
+    return response.data;
+  },
+
+  delete: async <T = any>(url: string, config?: AxiosRequestConfig): Promise<T> => {
+    const response = await interactionClient.delete<T>(url, config);
+    return response.data;
   },
 };
 

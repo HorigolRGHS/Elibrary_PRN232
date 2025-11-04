@@ -4,6 +4,7 @@ using Elib.Catalog.Service.DTOs;
 using Elib.Catalog.Service.Models;
 using Elib.Catalog.Service.Repositories;
 using Microsoft.EntityFrameworkCore;
+using System.Data;
 
 namespace Elib.Catalog.Service.Services
 {
@@ -30,7 +31,19 @@ namespace Elib.Catalog.Service.Services
 
         public async Task<CategoryReadDTO> CreateAsync(CategoryCreateDTO dto)
         {
+            var nameLower = dto.CategoryName?.Trim().ToLower();
+
+            var exists = await _repo.Query()
+                .AsNoTracking()
+                .AnyAsync(c => c.CategoryName != null &&
+                               c.CategoryName.ToLower() == nameLower);
+
+            if (exists)
+                throw new DuplicateNameException($"Category name '{dto.CategoryName}' already exists.");
+
             var entity = _mapper.Map<Category>(dto);
+            entity.CategoryName = dto.CategoryName?.Trim();
+
             await _repo.AddAsync(entity);
             await _repo.SaveChangesAsync();
             return _mapper.Map<CategoryReadDTO>(entity);
@@ -40,6 +53,23 @@ namespace Elib.Catalog.Service.Services
         {
             var entity = await _repo.GetByIdAsync(id);
             if (entity is null) return false;
+
+            var newLower = dto.CategoryName?.Trim().ToLower();
+            var curLower = entity.CategoryName?.Trim().ToLower();
+
+            if (newLower != curLower)
+            {
+                var exists = await _repo.Query()
+                    .AsNoTracking()
+                    .AnyAsync(c => c.CategoryId != id &&
+                                   c.CategoryName != null &&
+                                   c.CategoryName.ToLower() == newLower);
+
+                if (exists)
+                    throw new DuplicateNameException($"Category name '{dto.CategoryName}' already exists.");
+
+                entity.CategoryName = dto.CategoryName?.Trim();
+            }
 
             _mapper.Map(dto, entity);
             _repo.Update(entity);

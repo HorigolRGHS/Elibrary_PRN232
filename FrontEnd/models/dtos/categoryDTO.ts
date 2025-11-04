@@ -9,4 +9,5 @@ export type CategoryReadDTO = {
 export type CategorySelect = {
   categoryId: number;
   categoryName: string;
+  description?: string;
 };
