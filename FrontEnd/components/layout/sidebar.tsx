@@ -59,6 +59,12 @@ const sidebarConfig: SidebarGroupConfig[] = [
         description: "Manage documents",
       },
       {
+        title: "Subjects",
+        href: "/dashboard/subjects",
+        icon: FolderOpen,
+        description: "Manage subjects",
+      },
+      {
         title: "Categories",
         href: "/dashboard/categories",
         icon: FolderOpen,

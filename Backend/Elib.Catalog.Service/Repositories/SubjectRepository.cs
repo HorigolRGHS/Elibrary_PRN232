@@ -3,6 +3,7 @@ using Elib.Catalog.Service.Models;
 using Microsoft.EntityFrameworkCore;
 using SharedLibrary.Repositories;
 using System.Linq.Expressions;
+using System.Linq;
 
 
 namespace Elib.Catalog.Service.Repositories
@@ -16,6 +17,8 @@ namespace Elib.Catalog.Service.Repositories
         public async Task<Subject?> GetByIdAsync(int id) => await _dbSet.Subjects.Include(s => s.Documents).FirstOrDefaultAsync(s => s.SubjectId == id);
 
         public async Task<IEnumerable<Subject>> GetAllAsync() => await _dbSet.Subjects.Include(s => s.Documents).ToListAsync();
+
+        public IQueryable<Subject> GetAllQueryable() => _dbSet.Subjects.Include(s => s.Documents).AsQueryable();
 
         public async Task<IEnumerable<Subject>> FindAsync(Expression<Func<Subject, bool>> predicate)
             => await _dbSet.Subjects.Where(predicate).ToListAsync();

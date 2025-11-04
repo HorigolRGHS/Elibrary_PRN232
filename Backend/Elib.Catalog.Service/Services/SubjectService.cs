@@ -3,6 +3,9 @@ using Elib.Catalog.Service.Models;
 using Elib.Catalog.Service.Repositories;
 using SharedLibrary.Commons;
 using Elib.Catalog.Service.DTOs;
+using System.Linq;
+using Microsoft.EntityFrameworkCore;
+using AutoMapper.QueryableExtensions;
 
 namespace Elib.Catalog.Service.Services
 {
@@ -46,6 +49,9 @@ namespace Elib.Catalog.Service.Services
             var readDtos = _mapper.Map<IEnumerable<SubjectReadDTO>>(items);
             return ApiResponse<IEnumerable<SubjectReadDTO>>.Ok(readDtos);
         }
+
+        public IQueryable<SubjectReadDTO> GetAllQueryable() => _repo.GetAllQueryable().AsNoTracking()
+            .ProjectTo<SubjectReadDTO>(_mapper.ConfigurationProvider);
 
         public async Task<ApiResponse<SubjectReadDTO>> GetByIdAsync(int id)
         {
