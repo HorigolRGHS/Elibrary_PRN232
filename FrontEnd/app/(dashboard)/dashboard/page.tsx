@@ -137,7 +137,7 @@ export default function DashboardPage() {
     let mounted = true;
     setLoading(true);
     api
-      .get<SummaryResponse>("/interaction/Statistics/summary")
+      .get<SummaryResponse>("/interaction/api/Statistics/summary")
       .then((res) => {
         if (!mounted) return;
         if (res && res.data) {

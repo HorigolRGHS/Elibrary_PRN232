@@ -20,7 +20,7 @@
     },
     {
       "UpstreamPathTemplate": "/interaction/{everything}",
-      "UpstreamHttpMethod": [ "GET", "POST", "PUT" ],
+      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE" ],
       "DownstreamPathTemplate": "/{everything}",
       "DownstreamHostAndPorts": [
         { "Host": "localhost", "Port": 7004 }

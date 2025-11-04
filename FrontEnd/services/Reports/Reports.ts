@@ -18,26 +18,28 @@ export interface ReportDetailDTO extends ReportListItemDTO {
 
 export class ReportsService {
   static async getList(queryString: string): Promise<any> {
-    const url = `/interaction/Reports${queryString ? `?${queryString}` : ""}`;
+    const url = `/interaction/api/Reports${
+      queryString ? `?${queryString}` : ""
+    }`;
     return api.get(url);
   }
 
   static async getById(id: number): Promise<any> {
-    return api.get(`/interaction/Reports/${id}`);
+    return api.get(`/interaction/api/Reports/${id}`);
   }
 
   static async delete(id: number): Promise<ResponseDTO<boolean>> {
-    return api.delete(`/interaction/Reports/${id}`);
+    return api.delete(`/interaction/api/Reports/${id}`);
   }
 
   static async update(id: number, data: any): Promise<any> {
-    return api.put(`/interaction/Reports/${id}`, data);
+    return api.put(`/interaction/api/Reports/${id}`, data);
   }
 
   static async create(data: {
     documentId: number;
     reason: string;
   }): Promise<ResponseDTO<ReportDetailDTO>> {
-    return api.post(`/interaction/Reports`, data);
+    return api.post(`/interaction/api/Reports`, data);
   }
 }
