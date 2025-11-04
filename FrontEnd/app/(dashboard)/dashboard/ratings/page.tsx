@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useRatings } from "@/hooks/useRatings";
+import { useCurrentUserRole } from "@/hooks/useCurrentUserRole";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -19,6 +20,9 @@ import Link from "next/link";
 
 export default function RatingsPage() {
   const router = useRouter();
+  const userRole = useCurrentUserRole();
+  const isAdmin = userRole === "admin";
+
   const {
     ratings,
     loading,
@@ -29,11 +33,6 @@ export default function RatingsPage() {
     onPageChange,
     onSearch,
   } = useRatings();
-
-  // Check if user is admin from localStorage
-  const isAdmin = typeof window !== "undefined" 
-    ? localStorage.getItem("userRole")?.toLowerCase() === "admin"
-    : false;
 
   if (loading) {
     return (

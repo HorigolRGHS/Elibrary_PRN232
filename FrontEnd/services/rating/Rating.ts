@@ -61,6 +61,15 @@ export const RatingService = {
   },
 
   createRating: async (data: RatingCreateRequest) => {
+    // Admin cannot create ratings
+    const userRole = typeof window !== "undefined" 
+      ? localStorage.getItem("userRole")?.toLowerCase()
+      : null;
+    
+    if (userRole === "admin") {
+      throw new Error("Admin users cannot create ratings");
+    }
+
     const payload = {
       DocumentId: data.DocumentId,
       StarRating: data.StarRating,
@@ -71,6 +80,15 @@ export const RatingService = {
   },
 
   updateRating: async (id: number, data: RatingUpdateRequest) => {
+    // Admin cannot update ratings
+    const userRole = typeof window !== "undefined" 
+      ? localStorage.getItem("userRole")?.toLowerCase()
+      : null;
+    
+    if (userRole === "admin") {
+      throw new Error("Admin users cannot update ratings");
+    }
+
     const payload: any = {};
     if (data.DocumentId !== undefined) payload.DocumentId = data.DocumentId;
     if (data.StarRating !== undefined) payload.StarRating = data.StarRating;
@@ -80,6 +98,15 @@ export const RatingService = {
   },
 
   deleteRating: async (id: number) => {
+    // Admin cannot delete ratings
+    const userRole = typeof window !== "undefined" 
+      ? localStorage.getItem("userRole")?.toLowerCase()
+      : null;
+    
+    if (userRole === "admin") {
+      throw new Error("Admin users cannot delete ratings");
+    }
+
     return await api.delete(`/interaction/api/ratings/${id}`);
   },
 };
