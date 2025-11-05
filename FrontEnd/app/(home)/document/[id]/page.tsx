@@ -200,12 +200,11 @@ export default function DocumentPage() {
       return;
     }
 
-    // TEMPORARY: Disabled download check for testing
-    // if (!hasDownloaded && !userRating) {
-    //   // Show warning if user hasn't downloaded yet and doesn't have existing rating
-    //   toast.warning("Please download the document first before rating");
-    //   return;
-    // }
+    if (!hasDownloaded && !userRating) {
+      // Show warning if user hasn't downloaded yet and doesn't have existing rating
+      toast.warning("Please download the document first before rating");
+      return;
+    }
 
     setIsRateDialogOpen(true);
   };
