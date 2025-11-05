@@ -7,6 +7,7 @@
         public string Content { get; set; } = null!;
         public DateTime CreatedDate { get; set; }
         public int? CreatedBy { get; set; }
+        public string? CreatedByFullName { get; set; }
         public DateTime? UpdatedDate { get; set; }
     }
 }

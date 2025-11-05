@@ -29,6 +29,3 @@ export interface ColumnConfig<T = any> {
   width?: string;
   render?: (value: unknown, row: T) => React.ReactNode;
 }
-
-// Không cần định nghĩa lại SubjectResponseDTO ở đây nữa
-// export interface SubjectResponse { ... }

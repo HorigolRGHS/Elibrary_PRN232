@@ -20,8 +20,8 @@ export function useSubjects() {
   const [params, setParams] = useState<SubjectTableParams>(() => {
     const page = parseInt(searchParams.get("page") || "1");
     const pageSize = parseInt(searchParams.get("pageSize") || "10");
-    const sortField = searchParams.get("sortField") || "subjectId"; // Default sort field
-    const sortDirection = searchParams.get("sortDirection") as "asc" | "desc" | null || "desc"; // Default direction
+    const sortField = searchParams.get("sortField") || "subjectId";
+    const sortDirection = searchParams.get("sortDirection") as "asc" | "desc" | null || "desc";
 
     const filters: FilterState = {};
     const subjectName = searchParams.get("subjectName");
@@ -53,7 +53,6 @@ export function useSubjects() {
     setError(null);
     
     try {
-      // Build filter string for OData
       const filterConditions: string[] = [];
       if (debouncedFilters.subjectName) {
         filterConditions.push(
@@ -61,7 +60,6 @@ export function useSubjects() {
         );
       }
 
-      // Build orderby string for OData
       const orderBy = params.sort.field && params.sort.direction 
         ? `${params.sort.field} ${params.sort.direction}`
         : undefined;
@@ -92,7 +90,6 @@ export function useSubjects() {
     fetchSubjects();
   }, [fetchSubjects]);
 
-  // Rest of the handlers remain the same
   const handleSortChange = (field: string) => {
     const newDirection =
       params.sort.field === field
@@ -112,8 +109,6 @@ export function useSubjects() {
     setParams(newParams);
     updateURL(newParams);
   };
-
-  // ...existing handlers (handleFilterChange, handlePageChange, etc.)...
 
   return {
     subjects: data,

@@ -36,7 +36,6 @@ export default function DocumentUploadPage() {
   const { categories, loading: categoriesLoading } = useCategories();
   const { subjects, loading: subjectsLoading, error: subjectsError } = useSubjectsForSelect();
 
-  // Debug: Log subjects data when component updates
   useEffect(() => {
     if (typeof window !== "undefined") {
       console.log("DocumentUploadPage - subjects:", subjects);
@@ -46,8 +45,8 @@ export default function DocumentUploadPage() {
       if (subjects.length > 0) {
         console.log("First subject details:", subjects[0]);
         console.log("Subject keys:", Object.keys(subjects[0]));
-        console.log("Subject ID:", subjects[0].subjectId);
-        console.log("Subject Name:", subjects[0].subjectName);
+        console.log("Subject ID:", subjects[0].SubjectId);
+        console.log("Subject Name:", subjects[0].SubjectName);
       }
     }
   }, [subjects, subjectsLoading, subjectsError]);
@@ -62,7 +61,6 @@ export default function DocumentUploadPage() {
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Validation
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
@@ -120,7 +118,6 @@ export default function DocumentUploadPage() {
       await DocumentService.createDocument(formData);
       toast.success(`Document created successfully!`);
 
-      // Clean form after successful submission
       setFormData({
         title: "",
         description: "",
@@ -130,7 +127,6 @@ export default function DocumentUploadPage() {
       });
       setErrors({});
 
-      // Redirect after success
       setTimeout(() => {
         router.push("/");
       }, 1500);
@@ -151,7 +147,6 @@ export default function DocumentUploadPage() {
       ...prev,
       [name]: value,
     }));
-    // Clear error for this field
     if (errors[name]) {
       setErrors((prev) => ({
         ...prev,
@@ -390,12 +385,10 @@ export default function DocumentUploadPage() {
                         </div>
                       ) : (
                         subjects.map((sub) => {
-                          // Debug logging
                           console.log("Processing subject:", sub);
-                          console.log("subjectId:", sub.subjectId, "type:", typeof sub.subjectId);
-                          console.log("subjectName:", sub.subjectName, "type:", typeof sub.subjectName);
+                          console.log("subjectId:", sub.SubjectId, "type:", typeof sub.SubjectId);
+                          console.log("subjectName:", sub.SubjectName, "type:", typeof sub.SubjectName);
                           
-                          // Safely get ID and name with fallbacks for different property name cases
                           const subWithPossibleVariants = sub as SubjectResponseDTO & {
                             SubjectId?: number;
                             SubjectName?: string;
@@ -403,8 +396,8 @@ export default function DocumentUploadPage() {
                             name?: string;
                           };
                           
-                          const id = sub.subjectId ?? subWithPossibleVariants.SubjectId ?? subWithPossibleVariants.id ?? 0;
-                          const name = sub.subjectName ?? subWithPossibleVariants.SubjectName ?? subWithPossibleVariants.name ?? `Subject ${id}`;
+                          const id = sub.SubjectId ?? subWithPossibleVariants.SubjectId ?? subWithPossibleVariants.id ?? 0;
+                          const name = sub.SubjectName ?? subWithPossibleVariants.SubjectName ?? subWithPossibleVariants.name ?? `Subject ${id}`;
                           
                           if (!id || id === 0) {
                             console.warn("Subject has invalid ID:", sub);

@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Mvc;
 using Elib.Interaction.Service.Services;
 using Elib.Interaction.Service.DTOs.Comment;
 using SharedLibrary.Commons;
+using System.Collections.Generic;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Elib.Interaction.Service.Controllers
 {
@@ -19,7 +21,8 @@ namespace Elib.Interaction.Service.Controllers
 
         // GET: api/comments/5
         [HttpGet("{documentId:int}")]
-        public async Task<IActionResult> GetByDocumentId(int documentId)
+        [AllowAnonymous]
+        public async Task<ActionResult<ApiResponse<IEnumerable<CommentListDTO>>>> GetByDocumentId(int documentId)
         {
             var response = await _commentService.GetCommentsByDocumentIdAsync(documentId);
             if (!response.Success)
@@ -30,7 +33,8 @@ namespace Elib.Interaction.Service.Controllers
 
         // GET: api/comments/detail/5
         [HttpGet("detail/{id:int}")]
-        public async Task<IActionResult> GetById(int id)
+        [AllowAnonymous]
+        public async Task<ActionResult<ApiResponse<CommentReadDTO>>> GetById(int id)
         {
             var response = await _commentService.GetByIdAsync(id);
             if (!response.Success)
@@ -41,21 +45,26 @@ namespace Elib.Interaction.Service.Controllers
 
         // POST: api/comments
         [HttpPost]
-        public async Task<IActionResult> Create([FromBody] CommentCreateDTO dto)
+        [Authorize]
+        public async Task<ActionResult<ApiResponse<CommentReadDTO>>> Create([FromBody] CommentCreateDTO dto)
         {
             if (!ModelState.IsValid)
-                return BadRequest(ApiResponse<string>.Fail("Invalid comment data"));
+                return BadRequest(ApiResponse<CommentReadDTO>.Fail("Invalid comment data"));
 
             var response = await _commentService.CreateAsync(dto);
-            return Ok(response);
+            if (!response.Success)
+                return StatusCode(StatusCodes.Status500InternalServerError, response);
+
+            return CreatedAtAction(nameof(GetById), new { id = response.Data?.CommentId }, response);
         }
 
         // PUT: api/comments/5
         [HttpPut("{id:int}")]
-        public async Task<IActionResult> Update(int id, [FromBody] CommentUpdateDTO dto)
+        [Authorize]
+        public async Task<ActionResult<ApiResponse<CommentReadDTO>>> Update(int id, [FromBody] CommentUpdateDTO dto)
         {
             if (!ModelState.IsValid)
-                return BadRequest(ApiResponse<string>.Fail("Invalid comment data"));
+                return BadRequest(ApiResponse<CommentReadDTO>.Fail("Invalid comment data"));
 
             var response = await _commentService.UpdateAsync(id, dto);
             if (!response.Success)
@@ -67,7 +76,8 @@ namespace Elib.Interaction.Service.Controllers
 
         // DELETE: api/comments/5
         [HttpDelete("{id:int}")]
-        public async Task<IActionResult> Delete(int id)
+        [Authorize]
+        public async Task<ActionResult<ApiResponse<bool>>> Delete(int id)
         {
             var response = await _commentService.DeleteAsync(id);
             if (!response.Success)

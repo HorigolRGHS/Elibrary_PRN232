@@ -59,7 +59,6 @@ export function EditDocumentDialog({
     subjectId: 0,
   });
 
-  // Initialize form when document changes or when categories/subjects load
   useEffect(() => {
     if (
       document &&
@@ -68,12 +67,11 @@ export function EditDocumentDialog({
       !categoriesLoading &&
       !subjectsLoading
     ) {
-      // Find category and subject by name to get IDs
       const category = categories.find(
         (c) => c.CategoryName === document.categoryName
       );
       const subject = subjects.find(
-        (s) => s.subjectName === document.subjectName
+        (s) => s.SubjectName === document.subjectName
       );
 
       setFormData({
@@ -81,7 +79,7 @@ export function EditDocumentDialog({
         description: document.description || "",
         fileUrl: document.fileUrl || "",
         categoryId: category?.CategoryId || 0,
-        subjectId: subject?.subjectId || 0,
+        subjectId: subject?.SubjectId || 0,
       });
       setErrors({});
     }
@@ -123,14 +121,12 @@ export function EditDocumentDialog({
     const file = event.target.files?.[0];
     if (!file) return;
 
-    // Validate file
     const maxSize = 50 * 1024 * 1024; // 50MB
     if (file.size > maxSize) {
       toast.error("File size must be less than 50MB");
       return;
     }
 
-    // Only accept PDF files
     if (file.type !== "application/pdf") {
       toast.error("Only PDF files are allowed");
       return;
@@ -146,7 +142,6 @@ export function EditDocumentDialog({
     setUploadProgress(0);
 
     try {
-      // Simulate progress
       const progressInterval = setInterval(() => {
         setUploadProgress((prev) => {
           if (prev >= 90) {
@@ -157,7 +152,6 @@ export function EditDocumentDialog({
         });
       }, 300);
 
-      // Upload file
       const fileName = await StorageService.uploadFile(selectedFile);
 
       clearInterval(progressInterval);
@@ -494,13 +488,13 @@ export function EditDocumentDialog({
                 </SelectTrigger>
                 <SelectContent>
                   {subjects
-                    .filter((sub) => sub.subjectId && sub.subjectName)
+                    .filter((sub) => sub.SubjectId && sub.SubjectName)
                     .map((sub) => (
                       <SelectItem
-                        key={sub.subjectId}
-                        value={sub.subjectId?.toString() || ""}
+                        key={sub.SubjectId}
+                        value={sub.SubjectId?.toString() || ""}
                       >
-                        {sub.subjectName}
+                        {sub.SubjectName}
                       </SelectItem>
                     ))}
                 </SelectContent>

@@ -1,5 +1,5 @@
 import { api } from "@/api/apiClient";
-import { SubjectDetailDTO, SubjectResponseDTO, SubjectCreateDTO, SubjectUpdateDTO, SubjectSelect } from "@/models/dtos/subjectDTO";
+import { SubjectDetailDTO, SubjectResponseDTO, SubjectCreateDTO, SubjectUpdateDTO, SubjectSelect, camelSubjectDetailDTO } from "@/models/dtos/subjectDTO";
 
 export const SubjectService = {
   getSubjectList: async (params?: {
@@ -39,10 +39,14 @@ export const SubjectService = {
   getSelectSubjects: async (): Promise<SubjectSelect[]> => {
     const res = await api.get(`/catalog/api/subjects`);
     return res ?? [];
-    // return Array.isArray(data) ? data : Array.isArray(data?.items) ? data.items : [];
   },
 
   getSubjectById: async (id: number): Promise<SubjectDetailDTO | null> => {
+    const res = await api.get(`/catalog/api/subjects/${id}`);
+    return res?.data ?? null;
+  },
+
+  getCamelSubjectById: async (id: number): Promise<camelSubjectDetailDTO | null> => {
     const res = await api.get(`/catalog/api/subjects/${id}`);
     return res?.data ?? null;
   },

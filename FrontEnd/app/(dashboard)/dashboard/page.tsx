@@ -74,7 +74,6 @@ function VerticalBarChart({
   title: string;
   items: { label: string; value: number }[];
   valueFormatter?: (v: number) => string;
-  // optional fixed maximum to scale bars against (useful for ratings out of 5)
   maxValue?: number;
 }) {
   const max = Math.max(1, maxValue ?? Math.max(...items.map((t) => t.value)));
@@ -89,7 +88,7 @@ function VerticalBarChart({
           const safeValue = Math.max(0, Number(it.value) || 0);
           const maxNumeric = Math.max(1, Number(max) || 1);
           const topFlex = Math.max(0, maxNumeric - safeValue);
-          const bottomFlex = Math.max(0.0001, safeValue); // avoid zero flex which may collapse
+          const bottomFlex = Math.max(0.0001, safeValue);
 
           return (
             <div
