@@ -310,7 +310,6 @@ export default function DocumentPage() {
               file={documentStream}
               height="600px"
               onLoadError={handlePDFLoadError}
-              enableDownload={true}
               enableRotate={true}
               enableZoom={true}
               className="w-full"

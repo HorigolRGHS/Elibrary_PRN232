@@ -73,7 +73,7 @@ export function EditDocumentDialog({
         (c) => c.CategoryName === document.categoryName
       );
       const subject = subjects.find(
-        (s) => s.SubjectName === document.subjectName
+        (s) => s.subjectName === document.subjectName
       );
 
       setFormData({
@@ -81,7 +81,7 @@ export function EditDocumentDialog({
         description: document.description || "",
         fileUrl: document.fileUrl || "",
         categoryId: category?.CategoryId || 0,
-        subjectId: subject?.SubjectId || 0,
+        subjectId: subject?.subjectId || 0,
       });
       setErrors({});
     }
@@ -452,14 +452,16 @@ export function EditDocumentDialog({
                   />
                 </SelectTrigger>
                 <SelectContent>
-                  {categories.map((cat) => (
-                    <SelectItem
-                      key={cat.CategoryId}
-                      value={cat.CategoryId.toString()}
-                    >
-                      {cat.CategoryName}
-                    </SelectItem>
-                  ))}
+                  {categories
+                    .filter((cat) => cat.CategoryId && cat.CategoryName)
+                    .map((cat) => (
+                      <SelectItem
+                        key={cat.CategoryId}
+                        value={cat.CategoryId?.toString() || ""}
+                      >
+                        {cat.CategoryName}
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
               {errors.categoryId && (
@@ -491,14 +493,16 @@ export function EditDocumentDialog({
                   />
                 </SelectTrigger>
                 <SelectContent>
-                  {subjects.map((sub) => (
-                    <SelectItem
-                      key={sub.SubjectId}
-                      value={sub.SubjectId.toString()}
-                    >
-                      {sub.SubjectName}
-                    </SelectItem>
-                  ))}
+                  {subjects
+                    .filter((sub) => sub.subjectId && sub.subjectName)
+                    .map((sub) => (
+                      <SelectItem
+                        key={sub.subjectId}
+                        value={sub.subjectId?.toString() || ""}
+                      >
+                        {sub.subjectName}
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
               {errors.subjectId && (

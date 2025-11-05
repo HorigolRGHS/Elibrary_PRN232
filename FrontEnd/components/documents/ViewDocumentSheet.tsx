@@ -6,6 +6,8 @@ import {
   Sheet,
   SheetContent,
   SheetFooter,
+  SheetHeader,
+  SheetTitle,
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import Badge from "@/components/ui/badge";
@@ -100,6 +102,11 @@ export function ViewDocumentSheet({
   return (
     <Sheet open={isOpen} onOpenChange={handleOpenChange}>
       <SheetContent side="right" className="w-full sm:w-[700px] overflow-y-auto p-0">
+        <SheetHeader className="sr-only">
+          <SheetTitle>
+            {document ? `Document: ${document.title}` : "Document Details"}
+          </SheetTitle>
+        </SheetHeader>
         {loading ? (
           <div className="p-6 space-y-6">
             <div className="space-y-2">
