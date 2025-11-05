@@ -1,15 +1,13 @@
-using BCrypt.Net;
+using AutoMapper;
 using Elib.Auth.Service.DTOs;
+using Elib.Auth.Service.Models;
 using Elib.Auth.Service.Repositories;
+using Microsoft.IdentityModel.Tokens;
 using SharedLibrary.Auths;
 using SharedLibrary.Commons;
-using AutoMapper;
-using Elib.Auth.Service.Models;
-using System.Security.Claims;
 using System.IdentityModel.Tokens.Jwt;
-using Microsoft.IdentityModel.Tokens;
+using System.Security.Claims;
 using System.Text;
-using System.Security.Cryptography;
 
 namespace Elib.Auth.Service.Services
 {
@@ -39,13 +37,14 @@ namespace Elib.Auth.Service.Services
             if (user == null)
             {
                 return ApiResponse<LoginResponseDTO>.Fail("Account not found!");
-            } else if (!user.Active)
+            }
+            else if (!user.Active)
             {
                 return ApiResponse<LoginResponseDTO>.Fail("Your account has been banned or is inactive!");
             }
 
 
-                var ok = BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash);
+            var ok = BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash);
             if (!ok)
                 return ApiResponse<LoginResponseDTO>.Fail("Password is incorrect!");
 
@@ -62,7 +61,7 @@ namespace Elib.Auth.Service.Services
             var resp = new LoginResponseDTO
             {
                 AccessToken = token,
-                ExpiresAtUtc = dto.RememberMe ? DateTime.UtcNow.AddDays(_jwtSettings.RememberMeExpiryDays) :  DateTime.UtcNow.AddDays(_jwtSettings.ExpiryDays),
+                ExpiresAtUtc = dto.RememberMe ? DateTime.UtcNow.AddDays(_jwtSettings.RememberMeExpiryDays) : DateTime.UtcNow.AddDays(_jwtSettings.ExpiryDays),
                 User = _mapper.Map<UserInfoDTO>(user),
                 Permissions = Array.Empty<string>()
             };
@@ -102,7 +101,7 @@ namespace Elib.Auth.Service.Services
 
             var baseUrl = _config["AuthService:FrontEndUrl"] ?? "http://localhost:3000";
             var confirmKey = _config["AuthService:ConfirmKey"];
-            var token = BCrypt.Net.BCrypt.HashPassword(entity.CreatedDate + confirmKey); 
+            var token = BCrypt.Net.BCrypt.HashPassword(entity.CreatedDate + confirmKey);
             var confirmUrl = $"{baseUrl}/confirm-registration?token={token}&email={entity.Email}";
             var subject = "Confirm your account - EMC Library";
             var body = $@"
@@ -154,6 +153,11 @@ namespace Elib.Auth.Service.Services
 
             if (user.Active)
                 return ApiResponse<string>.Ok("Account is already confirmed.");
+
+            if (user.DeletedDate != null)
+            {
+                return ApiResponse<string>.Ok("Account is already banned.");
+            }
 
             var expectedToken = BCrypt.Net.BCrypt.HashPassword(user.CreatedDate + confirmKey);
 
@@ -215,7 +219,8 @@ namespace Elib.Auth.Service.Services
                     <p style='font-size:12px;color:#999;text-align:center;'>© {DateTime.UtcNow.Year} EMC Library. All rights reserved.</p>
                 </div>";
             try { _ = Task.Run(() => _email.SendEmailAsync(user.Email, subject, body)); }
-            catch {
+            catch
+            {
                 return ApiResponse<string>.Fail("Failed to send reset email. Please try again later.");
             }
 

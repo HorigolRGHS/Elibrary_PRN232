@@ -14,7 +14,6 @@ export function useDocuments() {
   const [totalCount, setTotalCount] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
 
-  // Initialize params from URL
   const [params, setParams] = useState<DocumentTableParams>(() => {
     const page = parseInt(searchParams.get("page") || "1");
     const pageSize = parseInt(searchParams.get("pageSize") || "10");
@@ -40,11 +39,8 @@ export function useDocuments() {
     };
   });
 
-  // Debounce filters to avoid calling API on every keystroke
-  // Only fetch after user stops typing for 1.5 seconds
   const debouncedFilters = useDebounce(params.filters, 1500);
 
-  // Update URL when params change
   const updateURL = useCallback((newParams: DocumentTableParams) => {
     const queryParams = new URLSearchParams();
     queryParams.set("page", newParams.page.toString());
@@ -70,7 +66,6 @@ export function useDocuments() {
       setLoading(true);
       setError(null);
 
-      // Build filter object for OData
       const filterConditions: string[] = [];
       
       if (debouncedFilters.title) {
@@ -86,10 +81,8 @@ export function useDocuments() {
         filterConditions.push(`contains(tolower(Status), '${debouncedFilters.status.toLowerCase()}')`);
       }
 
-      // Build orderBy for OData
       let orderBy: string | undefined;
       if (params.sort.field && params.sort.direction) {
-        // Convert camelCase to PascalCase for OData
         const fieldName = params.sort.field.charAt(0).toUpperCase() + params.sort.field.slice(1);
         orderBy = `${fieldName} ${params.sort.direction}`;
       }

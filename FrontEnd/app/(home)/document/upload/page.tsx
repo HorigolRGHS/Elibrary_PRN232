@@ -36,21 +36,6 @@ export default function DocumentUploadPage() {
   const { categories, loading: categoriesLoading } = useCategories();
   const { subjects, loading: subjectsLoading, error: subjectsError } = useSubjectsForSelect();
 
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      console.log("DocumentUploadPage - subjects:", subjects);
-      console.log("DocumentUploadPage - subjectsLoading:", subjectsLoading);
-      console.log("DocumentUploadPage - subjectsError:", subjectsError);
-      console.log("DocumentUploadPage - subjects.length:", subjects.length);
-      if (subjects.length > 0) {
-        console.log("First subject details:", subjects[0]);
-        console.log("Subject keys:", Object.keys(subjects[0]));
-        console.log("Subject ID:", subjects[0].SubjectId);
-        console.log("Subject Name:", subjects[0].SubjectName);
-      }
-    }
-  }, [subjects, subjectsLoading, subjectsError]);
-
   const [formData, setFormData] = useState<CreateDocumentRequest>({
     title: "",
     description: "",
@@ -61,6 +46,7 @@ export default function DocumentUploadPage() {
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  // Validation
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
@@ -118,6 +104,7 @@ export default function DocumentUploadPage() {
       await DocumentService.createDocument(formData);
       toast.success(`Document created successfully!`);
 
+      // Clean form after successful submission
       setFormData({
         title: "",
         description: "",
@@ -127,6 +114,7 @@ export default function DocumentUploadPage() {
       });
       setErrors({});
 
+      // Redirect after success
       setTimeout(() => {
         router.push("/");
       }, 1500);
@@ -147,6 +135,7 @@ export default function DocumentUploadPage() {
       ...prev,
       [name]: value,
     }));
+    // Clear error for this field
     if (errors[name]) {
       setErrors((prev) => ({
         ...prev,
@@ -385,9 +374,6 @@ export default function DocumentUploadPage() {
                         </div>
                       ) : (
                         subjects.map((sub) => {
-                          console.log("Processing subject:", sub);
-                          console.log("subjectId:", sub.SubjectId, "type:", typeof sub.SubjectId);
-                          console.log("subjectName:", sub.SubjectName, "type:", typeof sub.SubjectName);
                           
                           const subWithPossibleVariants = sub as SubjectResponseDTO & {
                             SubjectId?: number;
@@ -414,7 +400,7 @@ export default function DocumentUploadPage() {
                           );
                         }).filter(Boolean)
                       )}
-                    </SelectContent>
+z                    </SelectContent>
                   </Select>
                   {errors.subjectId && (
                     <p className="text-sm text-red-500 flex items-center gap-1">

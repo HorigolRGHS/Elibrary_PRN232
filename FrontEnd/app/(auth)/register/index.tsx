@@ -170,14 +170,18 @@ export default function RegisterIndex() {
                           >
                             I accept the{" "}
                             <a
-                              href="#"
+                              href="/terms"
+                              target="_blank"
+                              rel="noopener noreferrer"
                               className="text-blue-600 hover:underline"
                             >
                               Terms of Use
                             </a>{" "}
                             and{" "}
                             <a
-                              href="#"
+                              href="/privacy"
+                              target="_blank"
+                              rel="noopener noreferrer"
                               className="text-blue-600 hover:underline"
                             >
                               Privacy Policy

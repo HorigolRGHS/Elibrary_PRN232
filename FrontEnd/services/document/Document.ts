@@ -1,11 +1,9 @@
-// services/documentService.ts
 import { api } from "@/api/apiClient";
 import buildQuery from "odata-query";
 import {
   DocumentUserResponseItemDTO,
   DocumentStaffResponseListDTO,
   CreateDocumentRequest,
-  CreateDocumentResponse,
 } from "@/models/dtos/documentDTO";
 import { OdataResult, ResponseDTO } from "@/models/dtos/commonDTO";
 import { FileMode, StorageService } from "../storage/Storage";
