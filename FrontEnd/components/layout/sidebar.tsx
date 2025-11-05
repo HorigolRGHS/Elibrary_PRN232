@@ -93,17 +93,6 @@ const sidebarConfig: SidebarGroupConfig[] = [
       },
     ],
   },
-  {
-    label: "Settings",
-    items: [
-      {
-        title: "Configuration",
-        href: "/dashboard/settings",
-        icon: Settings,
-        description: "System settings",
-      },
-    ],
-  },
 ];
 
 // Sidebar Item Component

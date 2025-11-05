@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import {
   ChevronLeft,
   ChevronRight,
@@ -12,19 +12,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import "react-pdf/dist/Page/AnnotationLayer.css";
-import "react-pdf/dist/Page/TextLayer.css";
-
-if (typeof window !== "undefined" && !(window as any).DOMMatrix) {
-  (window as any).DOMMatrix = class {
-    a = 1;
-    b = 0;
-    c = 0;
-    d = 1;
-    e = 0;
-    f = 0;
-  };
-}
+import 'react-pdf/dist/Page/AnnotationLayer.css';
+import 'react-pdf/dist/Page/TextLayer.css';
 
 interface PDFDocument {
   numPages: number;
@@ -57,26 +46,77 @@ export default function PDFReader(props: PDFReaderProps) {
   const [rotation, setRotation] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [pdfData, setPdfData] = useState<ArrayBuffer | null>(null);
   const [Document, setDocument] = useState<any>(null);
   const [Page, setPage] = useState<any>(null);
   const [isReady, setIsReady] = useState(false);
+  const [fileUrl, setFileUrl] = useState<string | null>(null);
+
+  // Memoize PDF.js options to prevent unnecessary reloads
+  const pdfOptions = useMemo(
+    () => ({
+      cMapUrl: 'https://unpkg.com/pdfjs-dist@latest/cmaps/',
+      cMapPacked: true,
+      standardFontDataUrl: 'https://unpkg.com/pdfjs-dist@latest/standard_fonts/',
+    }),
+    []
+  );
 
   useEffect(() => {
     if (typeof window === "undefined") return;
 
+    // Fix DOMMatrix polyfill for older browsers
+    if (!(window as any).DOMMatrix) {
+      (window as any).DOMMatrix = class {
+        a = 1;
+        b = 0;
+        c = 0;
+        d = 1;
+        e = 0;
+        f = 0;
+      };
+    }
+
+    let mounted = true;
+
     const load = async () => {
       try {
         const reactPdf = await import("react-pdf");
-        reactPdf.pdfjs.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.js";
-        setDocument(() => reactPdf.Document);
-        setPage(() => reactPdf.Page);
-        setIsReady(true);
+        
+        // Configure worker
+        if (reactPdf.pdfjs) {
+          // Use local worker file from public folder
+          reactPdf.pdfjs.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.js";
+          
+          // Wait for worker to be ready - PDF.js creates worker lazily
+          await new Promise(resolve => setTimeout(resolve, 400));
+          
+          // Verify worker source is set
+          if (!reactPdf.pdfjs.GlobalWorkerOptions.workerSrc) {
+            throw new Error("Worker source not configured");
+          }
+        } else {
+          console.error("PDF.js not loaded correctly");
+          throw new Error("PDF.js failed to load");
+        }
+        
+        if (mounted) {
+          setDocument(() => reactPdf.Document);
+          setPage(() => reactPdf.Page);
+          setIsReady(true);
+        }
       } catch (e) {
-        setError("Failed to load PDF viewer");
+        console.error("Failed to load react-pdf:", e);
+        if (mounted) {
+          setError("Failed to load PDF viewer. Please refresh the page.");
+        }
       }
     };
+    
     load();
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   const onDocumentLoadSuccess = useCallback(
@@ -91,8 +131,9 @@ export default function PDFReader(props: PDFReaderProps) {
   );
   const onDocumentLoadError = useCallback(
     (err: Error) => {
+      console.error("PDF Document Load Error:", err);
       setLoading(false);
-      setError(err.message);
+      setError(err.message || "Failed to load PDF document");
       onLoadError?.(err);
     },
     [onLoadError]
@@ -133,17 +174,42 @@ export default function PDFReader(props: PDFReaderProps) {
   useEffect(() => {
     if (file) {
       setError(null);
+      
+      let newFileUrl: string | null = null;
+
       if (file instanceof File || file instanceof Blob) {
-        file
-          .arrayBuffer()
-          .then(setPdfData)
-          .catch(() => setError("Failed to process PDF file"));
-      } else {
-        setPdfData(null);
+        // Create object URL instead of ArrayBuffer to avoid detached buffer issues
+        newFileUrl = URL.createObjectURL(file);
+      } else if (typeof file === "string") {
+        newFileUrl = file;
       }
+
+      // Clean up previous URL before setting new one
+      setFileUrl((prevUrl) => {
+        if (prevUrl && prevUrl.startsWith('blob:')) {
+          URL.revokeObjectURL(prevUrl);
+        }
+        return newFileUrl;
+      });
     } else {
-      setPdfData(null);
+      // Clean up URL when file is removed
+      setFileUrl((prevUrl) => {
+        if (prevUrl && prevUrl.startsWith('blob:')) {
+          URL.revokeObjectURL(prevUrl);
+        }
+        return null;
+      });
     }
+
+    // Cleanup function
+    return () => {
+      setFileUrl((prevUrl) => {
+        if (prevUrl && prevUrl.startsWith('blob:')) {
+          URL.revokeObjectURL(prevUrl);
+        }
+        return null;
+      });
+    };
   }, [file]);
 
   if (!file)
@@ -158,6 +224,7 @@ export default function PDFReader(props: PDFReaderProps) {
         <p className="text-gray-500">No PDF file selected</p>
       </div>
     );
+  
   if (!isReady || !Document || !Page)
     return (
       <div
@@ -173,6 +240,23 @@ export default function PDFReader(props: PDFReaderProps) {
         </div>
       </div>
     );
+
+  if (error) {
+    return (
+      <div
+        className={cn(
+          "flex items-center justify-center border-2 border-dashed border-gray-300 rounded-lg",
+          className
+        )}
+        style={{ height, width }}
+      >
+        <div className="text-center text-red-600 p-4">
+          <p className="font-medium">Error</p>
+          <p className="text-sm mt-1">{error}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -268,13 +352,14 @@ export default function PDFReader(props: PDFReaderProps) {
           </div>
         )}
         {!error &&
-          (pdfData || (typeof file === "string" && file)) &&
+          fileUrl &&
           Document &&
           Page && (
             <Document
-              file={pdfData || (typeof file === "string" ? file : null)}
+              file={fileUrl}
               onLoadSuccess={onDocumentLoadSuccess}
               onLoadError={onDocumentLoadError}
+              options={pdfOptions}
               loading={
                 <div className="flex items-center space-x-2 text-gray-600">
                   <Loader2 className="w-6 h-6 animate-spin" />
