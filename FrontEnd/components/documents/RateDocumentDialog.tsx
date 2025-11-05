@@ -65,21 +65,18 @@ export function RateDocumentDialog({
       
       if (isUpdate && existingRatingId) {
         // Update existing rating
+        console.log('[RateDocumentDialog] Updating rating:', {
+          id: existingRatingId,
+          documentId,
+          starRating,
+          review: review.trim()
+        });
+        
         await RatingService.updateRating(existingRatingId, {
+          DocumentId: documentId, // Include DocumentId in update
           StarRating: starRating,
           Review: review.trim() || undefined,
         });
-        toast.success("Rating updated successfully");
-      } else {
-        // Create new rating
-        await RatingService.createRating({
-          DocumentId: documentId,
-          StarRating: starRating,
-          Review: review.trim() || undefined,
-          CreatedBy: userId,
-        });
-        toast.success("Rating submitted successfully");
-      }
 
       if (onSuccess) {
         onSuccess();
