@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { BookOpen, Plus, RefreshCw } from "lucide-react";
+import { GraduationCap, Plus, RefreshCw } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { useRouter } from "next/navigation";
 import { SubjectTable } from "@/components/subjects/SubjectTable";
@@ -35,7 +35,7 @@ export default function DashboardSubjectsPage() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-primary/10 rounded-lg">
-            <BookOpen className="size-6 text-primary" />
+            <GraduationCap className="size-6 text-primary" />
           </div>
           <div>
             <h1 className="text-2xl font-bold">Subjects Management</h1>
