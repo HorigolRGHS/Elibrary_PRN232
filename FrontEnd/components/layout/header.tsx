@@ -9,6 +9,8 @@ import {
   LogOut,
   User,
   UserPlus,
+  Upload,
+  LayoutDashboard,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useMemo, useState, useEffect } from "react";
@@ -117,7 +119,7 @@ function NotificationMenu({ isAuthenticated }: { isAuthenticated: boolean }) {
   }, [open, isAuthenticated]);
 
   const markAsViewed = async (id: number) => {
-    try {
+    try {   
       await api.post(`/activity/api/Notifications/${id}/view`);
       setItems((prev) =>
         prev.map((n) =>
@@ -318,10 +320,21 @@ export function UserHeader() {
           </div>
         </div>
 
-        {/* --- Right: Notification + User Menu --- */}
+        {/* --- Right: Upload Button + Notification + User Menu --- */}
         <div className="flex items-center gap-3 shrink-0">
           {isAuthenticated && (
-            <NotificationMenu isAuthenticated={isAuthenticated} />
+            <>
+              <Button
+                variant="default"
+                size="sm"
+                onClick={() => router.push("/document/upload")}
+                className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white"
+              >
+                <Upload className="w-4 h-4" />
+                <span className="hidden sm:inline">Upload</span>
+              </Button>
+              <NotificationMenu isAuthenticated={isAuthenticated} />
+            </>
           )}
 
           {/* Dropdown Menu */}
@@ -380,6 +393,18 @@ export function UserHeader() {
                     <Clock className="w-4 h-4 mr-2 text-gray-600 flex-shrink-0" />
                     <span>Download History</span>
                   </DropdownMenuItem>
+                  {role === "Admin" && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        className="flex items-center py-2 pl-1"
+                        onClick={() => router.push("/dashboard")}
+                      >
+                        <LayoutDashboard className="w-4 h-4 mr-2 flex-shrink-0" />
+                        <span>Dashboard</span>
+                      </DropdownMenuItem>
+                    </>
+                  )}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
                     onClick={handleLogout}
