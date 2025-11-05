@@ -11,6 +11,8 @@ import {
   Trash2,
   Loader2,
   Flag,
+  Star,
+  StarIcon,
 } from "lucide-react";
 import { toast } from "react-toastify";
 
@@ -39,6 +41,10 @@ import {
 import { useCurrentUserId } from "@/hooks/useCurrentUserId";
 import { useRouter, useParams } from "next/navigation";
 import { ReportDocumentDialog } from "@/components/documents/ReportDocumentDialog";
+import { RateDocumentDialog } from "@/components/documents/RateDocumentDialog";
+import { RatingService } from "@/services/rating/Rating";
+import { RatingReadDTO } from "@/models/dtos/ratingDTO";
+import { useCurrentUserRole } from "@/hooks/useCurrentUserRole";
 import { DocumentComments } from "@/components/documents/DocumentComments";
 
 const PDFReader = dynamic(() => import("@/components/ui/pdf-reader"), {
@@ -84,6 +90,7 @@ export default function DocumentPage() {
   const router = useRouter();
   const { id } = useParams<{ id: string }>();
   const currentUserId = useCurrentUserId();
+  const userRole = useCurrentUserRole();
   const [document, setDocument] = useState<DocumentUserResponseItemDTO | null>(
     null
   );
@@ -95,10 +102,15 @@ export default function DocumentPage() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
+  const [isRateDialogOpen, setIsRateDialogOpen] = useState(false);
+  const [hasDownloaded, setHasDownloaded] = useState(false);
+  const [userRating, setUserRating] = useState<RatingReadDTO | null>(null);
+  const [loadingRating, setLoadingRating] = useState(false);
 
   const docId = parseInt(id);
   const isCreator =
     document && currentUserId && document.createdBy === currentUserId;
+  const isCustomer = userRole === "customer";
 
   useEffect(() => {
     const fetchDocumentData = async () => {
@@ -134,10 +146,30 @@ export default function DocumentPage() {
     fetchDocumentData();
   }, [docId]);
 
+  // Load user's rating for this document
+  useEffect(() => {
+    const loadUserRating = async () => {
+      if (!currentUserId || !isCustomer) return;
+      
+      try {
+        setLoadingRating(true);
+        const rating = await RatingService.getUserRatingForDocument(currentUserId, docId);
+        setUserRating(rating);
+      } catch (err) {
+        console.error("Error loading user rating:", err);
+      } finally {
+        setLoadingRating(false);
+      }
+    };
+
+    loadUserRating();
+  }, [currentUserId, docId, isCustomer]);
+
   const handleDownload = async () => {
     if (!document?.fileUrl) return;
 
     try {
+      setHasDownloaded(true);
       const file = await DocumentService.downloadDocument(
         docId,
         document.fileUrl
@@ -152,6 +184,29 @@ export default function DocumentPage() {
   const handlePDFLoadError = (error: Error) => {
     console.error("PDF load error:", error);
     setViewerError("Failed to load PDF viewer");
+  };
+
+  const handleRateClick = () => {
+    if (!isCustomer) {
+      toast.info("Only customers can rate documents");
+      return;
+    }
+
+    if (!hasDownloaded && !userRating) {
+      // Show warning if user hasn't downloaded yet and doesn't have existing rating
+      toast.warning("Please download the document first before rating");
+      return;
+    }
+
+    setIsRateDialogOpen(true);
+  };
+
+  const handleRatingSuccess = async () => {
+    // Reload user rating after successful rating
+    if (currentUserId) {
+      const rating = await RatingService.getUserRatingForDocument(currentUserId, docId);
+      setUserRating(rating);
+    }
   };
 
   const handleDelete = async () => {
@@ -207,9 +262,29 @@ export default function DocumentPage() {
         <CardHeader>
           <div className="flex items-start justify-between">
             <div className="space-y-2">
-              <CardTitle className="text-2xl font-bold">
-                {document.title}
-              </CardTitle>
+              <div className="flex items-center gap-3">
+                <CardTitle className="text-2xl font-bold">
+                  {document.title}
+                </CardTitle>
+                {/* Show user's rating stars if they have rated */}
+                {userRating && isCustomer && (
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <StarIcon
+                        key={i}
+                        className={`w-5 h-5 ${
+                          i < userRating.StarRating
+                            ? "fill-yellow-400 text-yellow-400"
+                            : "text-gray-300"
+                        }`}
+                      />
+                    ))}
+                    <span className="ml-1 text-sm font-semibold text-gray-600">
+                      ({userRating.StarRating})
+                    </span>
+                  </div>
+                )}
+              </div>
               <CardDescription className="text-base">
                 {document.description}
               </CardDescription>
@@ -223,6 +298,19 @@ export default function DocumentPage() {
                 <Download className="w-4 h-4" />
                 Download
               </Button>
+
+              {/* Rate button for customers */}
+              {isCustomer && (
+                <Button
+                  onClick={handleRateClick}
+                  variant="outline"
+                  className="flex items-center gap-2"
+                  disabled={loadingRating}
+                >
+                  <Star className="w-4 h-4" />
+                  {userRating ? "Update Rating" : "Rate"}
+                </Button>
+              )}
 
               <Button
                 onClick={() => setIsReportDialogOpen(true)}
@@ -367,6 +455,20 @@ export default function DocumentPage() {
         documentTitle={document?.title || ""}
         onClose={() => setIsReportDialogOpen(false)}
       />
+
+      {/* Rate Document Dialog */}
+      {isCustomer && currentUserId && (
+        <RateDocumentDialog
+          isOpen={isRateDialogOpen}
+          onClose={() => setIsRateDialogOpen(false)}
+          documentId={docId}
+          userId={currentUserId}
+          existingRatingId={userRating?.RatingId}
+          existingStarRating={userRating?.StarRating}
+          existingReview={userRating?.Review}
+          onSuccess={handleRatingSuccess}
+        />
+      )}
     </div>
   );
 }
