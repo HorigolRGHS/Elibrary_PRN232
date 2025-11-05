@@ -4,9 +4,17 @@ import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { StarIcon } from "lucide-react";
+import { StarIcon, Trash2 } from "lucide-react";
 import { RatingService } from "@/services/rating/Rating";
 import { toast } from "react-toastify";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface RateDocumentDialogProps {
   isOpen: boolean;
@@ -33,6 +41,8 @@ export function RateDocumentDialog({
   const [review, setReview] = useState(existingReview || "");
   const [saving, setSaving] = useState(false);
   const [hoveredStar, setHoveredStar] = useState(0);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const isUpdate = !!existingRatingId;
 
@@ -79,6 +89,43 @@ export function RateDocumentDialog({
       toast.error(err?.message || `Failed to ${isUpdate ? "update" : "submit"} rating`);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!existingRatingId) return;
+
+    try {
+      setIsDeleting(true);
+      
+      // First verify the rating exists
+      console.log(`[RateDocumentDialog] Attempting to delete rating ID: ${existingRatingId}`);
+      
+      await RatingService.deleteRating(existingRatingId);
+      toast.success("Rating deleted successfully");
+      setIsDeleteDialogOpen(false);
+      if (onSuccess) {
+        onSuccess();
+      }
+      onClose();
+    } catch (err: any) {
+      console.error("Delete rating error:", err);
+      console.error("Error response:", err?.response);
+      
+      let errorMessage = "Failed to delete rating";
+      
+      if (err?.response?.status === 404) {
+        errorMessage = "Rating not found or already deleted";
+      } else if (err?.response?.status === 403) {
+        errorMessage = "You don't have permission to delete this rating";
+      } else if (err?.message) {
+        errorMessage = err.message;
+      }
+      
+      toast.error(errorMessage);
+      setIsDeleteDialogOpen(false);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -137,22 +184,65 @@ export function RateDocumentDialog({
           </div>
         </div>
 
-        <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={onClose}
-            disabled={saving}
-          >
-            Cancel
-          </Button>
-          <Button
-            onClick={handleSubmit}
-            disabled={saving || starRating === 0}
-          >
-            {saving ? "Submitting..." : isUpdate ? "Update Rating" : "Submit Rating"}
-          </Button>
+        <DialogFooter className="flex justify-between items-center">
+          <div className="flex-1">
+            {isUpdate && (
+              <Button
+                variant="destructive"
+                onClick={() => setIsDeleteDialogOpen(true)}
+                disabled={saving || isDeleting}
+                className="gap-2"
+              >
+                <Trash2 className="w-4 h-4" />
+                Delete
+              </Button>
+            )}
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={onClose}
+              disabled={saving || isDeleting}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSubmit}
+              disabled={saving || isDeleting || starRating === 0}
+            >
+              {saving ? "Submitting..." : isUpdate ? "Update Rating" : "Submit Rating"}
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Rating</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete your rating? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsDeleteDialogOpen(false)}
+              disabled={isDeleting}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={isDeleting}
+            >
+              {isDeleting ? "Deleting..." : "Delete"}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }

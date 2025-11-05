@@ -79,7 +79,7 @@ export const RatingService = {
       throw new Error("Admin users cannot delete ratings");
     }
 
-    return await api.delete(`/interaction/api/ratings/${id}`);
+    return await api.delete(`/interaction/api/ratings/(${id})`);
   },
 
   // Get user's rating for a specific document
