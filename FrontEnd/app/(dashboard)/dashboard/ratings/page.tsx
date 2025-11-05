@@ -17,11 +17,14 @@ import {
 } from "@/components/ui/table";
 import { StarIcon, Eye } from "lucide-react";
 import Link from "next/link";
+import { ViewRatingSheet } from "@/components/ratings/ViewRatingSheet";
 
 export default function RatingsPage() {
   const router = useRouter();
   const userRole = useCurrentUserRole();
   const isAdmin = userRole === "admin";
+  const [selectedRatingId, setSelectedRatingId] = useState<number | null>(null);
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
 
   const {
     ratings,
@@ -112,12 +115,17 @@ export default function RatingsPage() {
                     {new Date(rating.CreatedDate).toLocaleDateString()}
                   </TableCell>
                   <TableCell>
-                    <Link href={`/dashboard/ratings/${rating.RatingId}`}>
-                      <Button variant="ghost" size="sm">
-                        <Eye className="w-4 h-4 mr-1" />
-                        View
-                      </Button>
-                    </Link>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => {
+                        setSelectedRatingId(rating.RatingId);
+                        setIsSheetOpen(true);
+                      }}
+                    >
+                      <Eye className="w-4 h-4 mr-1" />
+                      View
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))
@@ -147,6 +155,20 @@ export default function RatingsPage() {
           </Button>
         </div>
       )}
+
+      {/* View Rating Sheet */}
+      <ViewRatingSheet
+        ratingId={selectedRatingId}
+        isOpen={isSheetOpen}
+        onClose={() => {
+          setIsSheetOpen(false);
+          setSelectedRatingId(null);
+        }}
+        onDeleted={() => {
+          // Refresh ratings list after delete
+          window.location.reload();
+        }}
+      />
     </div>
   );
 }

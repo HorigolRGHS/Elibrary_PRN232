@@ -5,23 +5,25 @@ import { useParams, useRouter } from "next/navigation";
 import { CategoryService } from "@/services/category/Category";
 import { CategoryReadDTO } from "@/models/dtos/categoryDTO";
 import { getAuthToken } from '@/api/apiClient';
-import { Edit2, ArrowLeft } from "lucide-react";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import { Edit2, ArrowLeft, Trash2, Folder } from "lucide-react";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { useCurrentUserRole } from "@/hooks/useCurrentUserRole";
 
 export default function CategoryDetailPage() {
   const params = useParams() as { id?: string };
   const id = params?.id ? Number(params.id) : null;
   const router = useRouter();
+  const userRole = useCurrentUserRole();
 
   const [category, setCategory] = useState<CategoryReadDTO | null>(null);
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
   const [loading, setLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const isAdmin = userRole === "admin";
 
   useEffect(() => {
     if (!id) return;
@@ -50,8 +52,6 @@ export default function CategoryDetailPage() {
         }
 
         setCategory(data);
-        setName(data.CategoryName);
-        setDescription((data as any).Description || "");
       } catch (err) {
         console.error(err);
         alert("Unable to load category");
@@ -64,126 +64,158 @@ export default function CategoryDetailPage() {
 
   if (!id) return <div className="p-6">Category ID not found.</div>;
 
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name.trim()) return alert("Category name cannot be empty");
+  const handleDelete = async () => {
+    if (!id) return;
     try {
-      setSaving(true);
-      
-      // If current user is Admin, use admin update endpoint
-      const token = getAuthToken();
-      let isAdmin = false;
-      if (token) {
-        try {
-          const payload = JSON.parse(atob(token.split('.')[1]));
-          const roles = payload?.roles ?? payload?.role ?? payload?.["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"];
-          isAdmin = Array.isArray(roles) ? roles.includes('Admin') : roles === 'Admin';
-        } catch (e) {
-          // ignore token parse errors
-        }
-      }
-      
+      setIsDeleting(true);
       if (isAdmin) {
-        await CategoryService.updateAdmin(id, { CategoryName: name.trim(), Description: description.trim() });
+        await CategoryService.deleteAdmin(id);
       } else {
-        await CategoryService.updateCategory(id, { CategoryName: name.trim(), Description: description.trim() });
+        await CategoryService.deleteCategory(id);
       }
-      
       router.push("/dashboard/categories");
-      router.refresh();
     } catch (err) {
-      console.error("Update failed:", err);
+      console.error("Delete failed:", err);
+      alert("Failed to delete category");
     } finally {
-      setSaving(false);
+      setIsDeleting(false);
+      setIsDeleteDialogOpen(false);
     }
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <Button 
-          variant="ghost" 
-          size="icon"
-          onClick={() => router.back()}
-        >
-          <ArrowLeft className="size-4" />
-        </Button>
+    <div className="flex gap-6">
+      {/* Main Content */}
+      <div className="flex-1 space-y-6">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-primary/10 rounded-lg">
-            <Edit2 className="size-6 text-primary" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold">Edit Category</h1>
-            <p className="text-sm text-muted-foreground">
-              Update category information
-            </p>
+          <Button 
+            variant="ghost" 
+            size="icon"
+            onClick={() => router.back()}
+          >
+            <ArrowLeft className="size-4" />
+          </Button>
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-primary/10 rounded-lg">
+              <Folder className="size-6 text-primary" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold">Category Details</h1>
+              <p className="text-sm text-muted-foreground">
+                View category information
+              </p>
+            </div>
           </div>
         </div>
-      </div>
 
-      <Card>
-        <CardHeader>
-          <div>
+        <Card>
+          <CardHeader>
             <CardTitle>Category Information</CardTitle>
-            <CardDescription>Modify the category details below.</CardDescription>
-          </div>
-        </CardHeader>
+            <CardDescription>Details about this category</CardDescription>
+          </CardHeader>
 
-        <CardContent>
-          {loading ? (
-            <div className="text-center py-8">Loading...</div>
-          ) : category ? (
-            <form onSubmit={handleSave} className="space-y-6">
-              <div>
-                <label className="block text-sm font-medium mb-2">Category ID</label>
-                <div className="px-3 py-2 bg-muted rounded border border-muted-foreground/20 text-sm">
-                  {category.CategoryId}
+          <CardContent>
+            {loading ? (
+              <div className="text-center py-8">Loading...</div>
+            ) : category ? (
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium text-gray-600">Category ID</label>
+                  <p className="text-lg">{category.CategoryId}</p>
+                </div>
+
+                <Separator />
+
+                <div>
+                  <label className="text-sm font-medium text-gray-600">Category Name</label>
+                  <p className="text-lg">{category.CategoryName}</p>
+                </div>
+
+                <Separator />
+
+                <div>
+                  <label className="text-sm font-medium text-gray-600">Description</label>
+                  <p className="text-base">{(category as any).Description || "No description"}</p>
+                </div>
+
+                <Separator />
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">Created Date</label>
+                    <p className="text-base">{new Date(category.CreatedDate).toLocaleString()}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">Updated Date</label>
+                    <p className="text-base">{new Date(category.UpdatedDate).toLocaleString()}</p>
+                  </div>
                 </div>
               </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">Category not found.</div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
 
-              <div>
-                <label className="block text-sm font-medium mb-2">Category Name *</label>
-                <Input 
-                  value={name} 
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Enter category name"
-                  required
-                />
-              </div>
+      {/* Sidebar Actions */}
+      <div className="w-80 space-y-4">
+        <Card>
+          <CardHeader>
+            <CardTitle>Actions</CardTitle>
+            <CardDescription>Manage this category</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <Button 
+              className="w-full justify-start"
+              variant="outline"
+              onClick={() => router.push(`/dashboard/categories/${id}/edit`)}
+            >
+              <Edit2 className="size-4 mr-2" />
+              Edit Category
+            </Button>
+            
+            {isAdmin && (
+              <Button 
+                className="w-full justify-start"
+                variant="destructive"
+                onClick={() => setIsDeleteDialogOpen(true)}
+              >
+                <Trash2 className="size-4 mr-2" />
+                Delete Category
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+      </div>
 
-              <div>
-                <label className="block text-sm font-medium mb-2">Description</label>
-                <Textarea 
-                  value={description} 
-                  onChange={(e) => setDescription(e.target.value)} 
-                  rows={4}
-                  placeholder="Enter category description (optional)"
-                />
-              </div>
-
-              <Separator />
-
-              <div className="flex gap-2">
-                <Button 
-                  type="submit" 
-                  disabled={saving || !name.trim()}
-                >
-                  {saving ? "Saving..." : "Save Changes"}
-                </Button>
-                <Button 
-                  variant="outline" 
-                  type="button" 
-                  onClick={() => router.back()}
-                >
-                  Cancel
-                </Button>
-              </div>
-            </form>
-          ) : (
-            <div className="text-center py-8 text-muted-foreground">Category not found.</div>
-          )}
-        </CardContent>
-      </Card>
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Category</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete &quot;{category?.CategoryName}&quot;? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setIsDeleteDialogOpen(false)}
+              disabled={isDeleting}
+            >
+              Cancel
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={handleDelete}
+              disabled={isDeleting}
+            >
+              {isDeleting ? "Deleting..." : "Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

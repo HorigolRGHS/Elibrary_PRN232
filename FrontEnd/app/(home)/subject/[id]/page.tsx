@@ -4,19 +4,30 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SubjectSelect } from "@/models/dtos/subjectDTO";
 import { SubjectService } from "@/services/subject/Subject";
+import { CategoryService } from "@/services/category/Category";
+import { CategorySelect } from "@/models/dtos/categoryDTO";
 import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
-import { FileText } from "lucide-react";
+import { FileText, Filter } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export default function SubjectPage() {
   const params = useParams();
   const router = useRouter();
   const [subject, setSubject] = useState<SubjectSelect | null>(null);
+  const [categories, setCategories] = useState<CategorySelect[]>([]);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string>("all");
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchSubject = async () => {
+    const fetchData = async () => {
       setLoading(true);
       setErrorMessage(null);
       try {
@@ -25,17 +36,24 @@ export default function SubjectPage() {
           router.push('/404');
           return;
         }
-        const data = await SubjectService.getSubjectById(id);
-        setSubject(data);
+        
+        // Fetch subject and categories in parallel
+        const [subjectData, categoriesData] = await Promise.all([
+          SubjectService.getSubjectById(id),
+          CategoryService.getSelectCategories()
+        ]);
+        
+        setSubject(subjectData);
+        setCategories(categoriesData);
       } catch (error) {
-        console.error('Error fetching subject:', error);
+        console.error('Error fetching data:', error);
         // router.push('/404');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchSubject();
+    fetchData();
   }, [params.id, router]);
 
   if (loading) {

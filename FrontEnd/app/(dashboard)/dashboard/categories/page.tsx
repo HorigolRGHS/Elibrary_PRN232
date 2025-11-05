@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { PaginationBar } from "@/components/common/pagination";
+import { ViewCategorySheet } from "@/components/categories/ViewCategorySheet";
 import {
   Select,
   SelectContent,
@@ -23,14 +24,27 @@ import {
 } from "@/components/ui/select";
 
 export default function Page() {
-  const { categories, loading, error, totalCount, totalPages, params, handlePageChange, handlePageSizeChange, handleSearch, refresh } = useCategories();
+  const { categories, loading, error } = useCategories();
   const router = useRouter();
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmTarget, setConfirmTarget] = useState<number | null>(null);
   const [diagError, setDiagError] = useState<any>(null);
+
+  // Filter categories based on search query
+  const filteredCategories = categories.filter((c) =>
+    c.CategoryName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    c.CategoryId?.toString().includes(searchQuery)
+  );
+
+  const refresh = () => {
+    router.refresh();
+  };
 
   useEffect(() => {
     const token = getAuthToken();
@@ -135,26 +149,8 @@ export default function Page() {
             <div>
               <CardTitle>All Categories</CardTitle>
               <CardDescription>
-                Total: {totalCount} categories
+                Total: {filteredCategories.length} categories
               </CardDescription>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">Items per page:</span>
-              <Select
-                value={params.pageSize.toString()}
-                onValueChange={(value) => handlePageSizeChange(Number(value))}
-                disabled={loading}
-              >
-                <SelectTrigger className="w-[100px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="5">5</SelectItem>
-                  <SelectItem value="10">10</SelectItem>
-                  <SelectItem value="20">20</SelectItem>
-                  <SelectItem value="50">50</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
           </div>
         </CardHeader>
@@ -163,8 +159,8 @@ export default function Page() {
           <div className="flex gap-3">
             <Input 
               placeholder="Search by name or id" 
-              value={params.searchQuery} 
-              onChange={(e) => handleSearch(e.target.value)}
+              value={searchQuery} 
+              onChange={(e) => setSearchQuery(e.target.value)}
               className="max-w-sm"
             />
           </div>
@@ -189,7 +185,7 @@ export default function Page() {
                   </tr>
                 </TableHeader>
                 <TableBody>
-                  {categories.map((c: any, idx: number) => (
+                  {filteredCategories.map((c: any, idx: number) => (
                     <TableRow key={`${c.CategoryId ?? "cat"}-${idx}`}>
                       <TableCell className="font-medium">{c.CategoryId}</TableCell>
                       <TableCell>{c.CategoryName}</TableCell>
@@ -201,19 +197,20 @@ export default function Page() {
                           <Button 
                             variant="ghost" 
                             size="sm" 
-                            asChild
+                            onClick={() => {
+                              setSelectedCategoryId(c.CategoryId);
+                              setIsSheetOpen(true);
+                            }}
                           >
-                            <Link href={`/dashboard/categories/${c.CategoryId}`}>
-                              <Eye className="size-4 mr-1" />
-                              View
-                            </Link>
+                            <Eye className="size-4 mr-1" />
+                            View
                           </Button>
                           <Button 
                             variant="ghost" 
                             size="sm" 
                             asChild
                           >
-                            <Link href={`/dashboard/categories/${c.CategoryId}`}>
+                            <Link href={`/dashboard/categories/${c.CategoryId}/edit`}>
                               <Edit2 className="size-4 mr-1" />
                               Edit
                             </Link>
@@ -246,17 +243,6 @@ export default function Page() {
                   ))}
                 </TableBody>
               </Table>
-
-              {/* Pagination */}
-              {totalPages > 1 && (
-                <PaginationBar
-                  currentPage={params.page}
-                  totalPages={totalPages}
-                  totalCount={totalCount}
-                  loading={loading}
-                  onChange={handlePageChange}
-                />
-              )}
             </>
           )}
         </CardContent>
@@ -289,6 +275,19 @@ export default function Page() {
           </DialogContent>
         </Dialog>
       </Card>
+
+      {/* View Category Sheet */}
+      <ViewCategorySheet
+        categoryId={selectedCategoryId}
+        isOpen={isSheetOpen}
+        onClose={() => {
+          setIsSheetOpen(false);
+          setSelectedCategoryId(null);
+        }}
+        onDeleted={() => {
+          refresh();
+        }}
+      />
     </div>
   );
 }

@@ -81,4 +81,19 @@ export const RatingService = {
 
     return await api.delete(`/interaction/api/ratings/${id}`);
   },
+
+  // Get user's rating for a specific document
+  getUserRatingForDocument: async (userId: number, documentId: number): Promise<RatingReadDTO | null> => {
+    try {
+      const ratings = await api.get<RatingSelect[]>(`/interaction/api/ratings`);
+      const userRating = ratings.find((r) => r.CreatedBy === userId && r.DocumentId === documentId);
+      if (userRating) {
+        return await RatingService.getById(userRating.RatingId);
+      }
+      return null;
+    } catch (err: any) {
+      console.error('[RatingService] getUserRatingForDocument failed', err?.message);
+      return null;
+    }
+  },
 };
