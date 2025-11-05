@@ -15,9 +15,8 @@ export function useSubjectsForSelect() {
       setError(null);
       
       try {
-        // Fetch all subjects with a large top value to get all
         const response = await SubjectService.getSubjectList({
-          top: 1000, // Large number to get all subjects
+          top: 1000,
           count: false,
           orderBy: "subjectName asc",
         });

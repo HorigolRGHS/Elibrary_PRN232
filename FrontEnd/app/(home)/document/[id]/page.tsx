@@ -45,8 +45,8 @@ import { RateDocumentDialog } from "@/components/documents/RateDocumentDialog";
 import { RatingService } from "@/services/rating/Rating";
 import { RatingReadDTO } from "@/models/dtos/ratingDTO";
 import { useCurrentUserRole } from "@/hooks/useCurrentUserRole";
+import { DocumentComments } from "@/components/documents/DocumentComments";
 
-// Dynamically import PDFReader to avoid SSR issues with DOMMatrix and other browser APIs
 const PDFReader = dynamic(() => import("@/components/ui/pdf-reader"), {
   ssr: false,
   loading: () => (
@@ -59,30 +59,22 @@ const PDFReader = dynamic(() => import("@/components/ui/pdf-reader"), {
   ),
 });
 
-// No props: in Client Components, use useParams()
-
 const triggerFileDownload = (file: File, fallbackName: string): void => {
   try {
-    // Create blob URL
     const url = URL.createObjectURL(file);
 
-    // Create anchor element
     const link = document.createElement("a");
     link.href = url;
     link.download = file.name || fallbackName;
 
-    // Set additional attributes for Firefox compatibility
     link.style.display = "none";
     link.setAttribute("target", "_blank");
 
-    // Append to body (required for Firefox)
     document.body.appendChild(link);
 
-    // Trigger download with a slight delay for Firefox
     setTimeout(() => {
       link.click();
 
-      // Cleanup after download starts
       setTimeout(() => {
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
@@ -414,6 +406,7 @@ export default function DocumentPage() {
           )}
         </CardContent>
       </Card>
+      <DocumentComments documentId={docId} />
 
       {/* Edit Document Dialog */}
       <EditDocumentDialog
@@ -421,7 +414,6 @@ export default function DocumentPage() {
         document={document}
         onClose={() => setIsEditDialogOpen(false)}
         onSuccess={() => {
-          // Refresh document data
           const refetch = async () => {
             const doc = await DocumentService.getUserDocumentDetails(docId);
             setDocument(doc);

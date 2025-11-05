@@ -54,7 +54,7 @@ export default function Home() {
       <div className="font-sans min-h-screen w-full">
         <Herosection />
         <div className="container mx-auto p-8">
-          <h1 className="text-3xl font-bold mb-8">Browse Subjects</h1>
+          <h1 className="text-3xl font-bold mb-8">Subjects</h1>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {subjects.map((subject) => (

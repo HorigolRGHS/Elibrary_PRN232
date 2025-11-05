@@ -15,11 +15,11 @@ import {
   SubjectDetailDTO,
   SubjectCreateDTO,
   SubjectUpdateDTO,
+  camelSubjectDetailDTO,
 } from "@/models/dtos/subjectDTO";
 import { SubjectService } from "@/services/subject/Subject";
 import { toast } from "react-toastify";
 import { ImageUploadSection } from "@/components/subjects/ImageUploadSection";
-// FIX: Import service upload ảnh của bạn
 import { uploadToImageKit } from "@/services/Common/fileService"; 
 import { Loader2 } from "lucide-react";
 
@@ -27,6 +27,7 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   initial?: SubjectDetailDTO | null;
+  camelInitial?: camelSubjectDetailDTO | null;
   onSaved?: () => void;
 }
 
@@ -34,31 +35,30 @@ export default function SubjectForm({
   open,
   onOpenChange,
   initial,
+  camelInitial,
   onSaved,
 }: Props) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [saving, setSaving] = useState(false);
   
-  // FIX: Tách state cho imageUrl hiện tại và file ảnh mới
   const [currentImageUrl, setCurrentImageUrl] = useState<string | null>(null);
   const [newImageFile, setNewImageFile] = useState<File | null>(null);
 
   useEffect(() => {
-    if (initial) {
-      setName(initial.subjectName ?? "");
-      setDescription(initial.description ?? "");
-      setCurrentImageUrl(initial.imageUrl ?? null);
+    if (camelInitial) {
+      setName(camelInitial.subjectName ?? "");
+      setDescription(camelInitial.description ?? "");
+      setCurrentImageUrl(camelInitial.imageUrl ?? null);
     } else {
-      // Reset cho form tạo mới
       setName("");
       setDescription("");
       setCurrentImageUrl(null);
     }
-    // Reset file đã chọn mỗi khi dialog mở/đóng hoặc đổi subject
     setNewImageFile(null);
-  }, [initial, open]);
+  }, [camelInitial, open]);
 
+  console.log("SubjectForm render:", { open, camelInitial });
   const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault();
     if (!name.trim()) {
@@ -67,11 +67,9 @@ export default function SubjectForm({
     }
     setSaving(true);
     
-    // Mặc định dùng ảnh cũ
     let finalImageUrl = currentImageUrl;
 
     try {
-      // FIX: Chỉ upload khi có file mới được chọn
       if (newImageFile) {
         try {
           toast.info("Uploading image...");
@@ -83,12 +81,12 @@ export default function SubjectForm({
 
       const payload = {
         subjectName: name,
-        imageUrl: finalImageUrl || undefined, // Gửi undefined nếu không có ảnh
+        imageUrl: finalImageUrl || undefined,
         description: description,
       };
 
-      if (initial && initial.subjectId) {
-        await SubjectService.updateSubject(initial.subjectId, payload as SubjectUpdateDTO);
+      if (camelInitial && camelInitial.subjectId) {
+        await SubjectService.updateSubject(camelInitial.subjectId, payload as SubjectUpdateDTO);
         toast.success("Subject updated successfully!");
       } else {
         await SubjectService.createSubject(payload as SubjectCreateDTO);
@@ -108,7 +106,7 @@ export default function SubjectForm({
       <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto p-6">
         <DialogHeader>
           <DialogTitle className="text-lg font-semibold">
-            {initial ? "Edit Subject" : "Create Subject"}
+            {camelInitial ? "Edit Subject" : "Create Subject"}
           </DialogTitle>
         </DialogHeader>
 
@@ -123,18 +121,14 @@ export default function SubjectForm({
             />
           </div>
 
-          {/* 🖼️ Image */}
           <div>
             <ImageUploadSection
-              // FIX: Truyền URL hiện tại vào
               initialImageUrl={currentImageUrl}
-              // FIX: Cập nhật state file mới khi người dùng chọn
               onFileChange={(file) => setNewImageFile(file)}
               shouldReset={!open}
             />
           </div>
 
-          {/* 📝 Description */}
           <div>
             <label className="block text-sm font-medium mb-1">Description</label>
             <Textarea

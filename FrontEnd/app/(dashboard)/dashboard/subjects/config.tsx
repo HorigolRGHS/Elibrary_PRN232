@@ -13,28 +13,28 @@ const formatDate = (dateString: string): string => {
 
 export const subjectColumns: ColumnConfig<SubjectResponseDTO>[] = [
   {
-    key: "subjectId",
+    key: "SubjectId",
     label: "ID",
     sortable: true,
     width: "w-16",
   },
   {
-    key: "imageUrl",
+    key: "ImageUrl",
     label: "Image",
     width: "w-24",
     render: (value, row) => (
       <Dialog>
         <DialogTrigger asChild>
           <img
-            src={row.imageUrl || "/placeholder-image.jpg"}
-            alt={row.subjectName}
+            src={row.ImageUrl || "/placeholder-image.jpg"}
+            alt={row.SubjectName}
             className="w-12 h-12 object-cover rounded-md cursor-pointer hover:opacity-80 transition"
           />
         </DialogTrigger>
         <DialogContent className="flex justify-center items-center">
           <img
-            src={row.imageUrl || "/placeholder-image.jpg"}
-            alt={row.subjectName}
+            src={row.ImageUrl || "/placeholder-image.jpg"}
+            alt={row.SubjectName}
             className="max-h-[80vh] object-contain rounded-lg"
           />
         </DialogContent>
@@ -42,14 +42,14 @@ export const subjectColumns: ColumnConfig<SubjectResponseDTO>[] = [
     ),
   },
   {
-    key: "subjectName",
+    key: "SubjectName",
     label: "Subject Name",
     sortable: true,
     filterable: true,
     width: "min-w-[200px]",
   },
   {
-    key: "createdDate",
+    key: "CreatedDate",
     label: "Created Date",
     sortable: true,
     width: "min-w-[120px]",
@@ -60,16 +60,16 @@ export const subjectColumns: ColumnConfig<SubjectResponseDTO>[] = [
     ),
   },
   {
-    key: "updatedDate",
-    label: "Updated Date",
-    sortable: false,
-    width: "min-w-[120px]",
-    render: (value) => (
-      <span className="text-sm text-muted-foreground">
-        {formatDate(value as string)}
-      </span>
-    ),
-  },
+  key: "UpdatedDate",
+  label: "Updated Date",
+  sortable: false,
+  width: "min-w-[120px]",
+  render: (value) => (
+    <span className="text-sm text-muted-foreground">
+      {value ? formatDate(value as string) : "N/A"}
+    </span>
+  ),
+},
 ];
 
 export const filterableColumns = subjectColumns

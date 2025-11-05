@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { SubjectSelect } from "@/models/dtos/subjectDTO";
+import { camelSubjectDetailDTO, SubjectSelect } from "@/models/dtos/subjectDTO";
 import { SubjectService } from "@/services/subject/Subject";
 import { CategoryService } from "@/services/category/Category";
 import { CategorySelect } from "@/models/dtos/categoryDTO";
@@ -76,6 +76,8 @@ export default function SubjectPage() {
       </div>
     );
   }
+
+  console.log("Subject Page render:", subject);
 
   return (
     <div className="container mx-auto p-8">
