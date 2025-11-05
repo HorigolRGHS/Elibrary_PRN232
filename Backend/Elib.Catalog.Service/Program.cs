@@ -108,6 +108,10 @@ builder.Services.AddMassTransit(cfg =>
                     h.Username(mq["Username"]);
                 if (!string.IsNullOrEmpty(mq["Password"]))
                     h.Password(mq["Password"]);
+                
+                // Enable automatic connection recovery
+                h.AutomaticRecoveryEnabled = true;
+                h.NetworkRecoveryInterval = TimeSpan.FromSeconds(10);
             });
         }
         else
@@ -116,8 +120,15 @@ builder.Services.AddMassTransit(cfg =>
             {
                 h.Username(builder.Configuration["RabbitMQ:Username"]);
                 h.Password(builder.Configuration["RabbitMQ:Password"]);
+                
+                // Enable automatic connection recovery
+                h.AutomaticRecoveryEnabled = true;
+                h.NetworkRecoveryInterval = TimeSpan.FromSeconds(10);
             });
         }
+
+        // Configure connection resilience at bus level
+        bus.UseMessageRetry(r => r.Interval(3, TimeSpan.FromSeconds(2)));
 
         bus.ReceiveEndpoint("catalog.get-document-summary", e =>
         {
@@ -153,8 +164,14 @@ builder.Services.AddMassTransit(cfg =>
 
 builder.Services.Configure<MassTransitHostOptions>(opts =>
 {
-    opts.WaitUntilStarted = true;
-    opts.StartTimeout = TimeSpan.FromSeconds(30);
+    // Make WaitUntilStarted configurable, default to true but allow override
+    var waitUntilStarted = builder.Configuration.GetValue<bool>("RabbitMQ:WaitUntilStarted", true);
+    opts.WaitUntilStarted = waitUntilStarted;
+    
+    // Increase start timeout to allow RabbitMQ more time to be ready (especially in AppHost)
+    var startTimeoutSeconds = builder.Configuration.GetValue<int>("RabbitMQ:StartTimeoutSeconds", 60);
+    opts.StartTimeout = TimeSpan.FromSeconds(startTimeoutSeconds);
+    
     opts.StopTimeout = TimeSpan.FromSeconds(10);
 });
 
