@@ -108,10 +108,6 @@ builder.Services.AddMassTransit(cfg =>
                     h.Username(mq["Username"]);
                 if (!string.IsNullOrEmpty(mq["Password"]))
                     h.Password(mq["Password"]);
-                
-                // Enable automatic connection recovery
-                h.AutomaticRecoveryEnabled = true;
-                h.NetworkRecoveryInterval = TimeSpan.FromSeconds(10);
             });
         }
         else
@@ -120,10 +116,6 @@ builder.Services.AddMassTransit(cfg =>
             {
                 h.Username(builder.Configuration["RabbitMQ:Username"]);
                 h.Password(builder.Configuration["RabbitMQ:Password"]);
-                
-                // Enable automatic connection recovery
-                h.AutomaticRecoveryEnabled = true;
-                h.NetworkRecoveryInterval = TimeSpan.FromSeconds(10);
             });
         }
 
