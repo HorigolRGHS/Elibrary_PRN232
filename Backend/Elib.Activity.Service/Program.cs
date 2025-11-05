@@ -12,13 +12,28 @@ using SharedLibrary.Commons;
 using SharedLibrary.Messages;
 using Elib.Activity.Service.Messaging.Consumer;
 using Elib.Activity.Service.Consumers;
+using Elib.Activity.Service.DTOs;
+using Microsoft.AspNetCore.OData;
+using Microsoft.OData.ModelBuilder;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
 
 // Add services to the container.
+var modelBuilder = new ODataConventionModelBuilder();
+modelBuilder.EntitySet<NotificationDTO>("Notifications");
+modelBuilder.EntitySet<DownloadHistory>("DownloadHistories");
+
 builder.Services.AddControllers()
+    .AddOData(opt => opt
+        .Select()
+        .Filter()
+        .OrderBy()
+        .Expand()
+        .Count()
+        .SetMaxTop(100)
+        .AddRouteComponents("odata", modelBuilder.GetEdmModel()))
     .ConfigureApiBehaviorOptions(options =>
     {
         options.InvalidModelStateResponseFactory = context =>
@@ -76,10 +91,10 @@ builder.Services.AddMassTransit(cfg =>
 {
     cfg.SetKebabCaseEndpointNameFormatter();
 
- 
+
     cfg.AddConsumer<ReportResolvedConsumer>();
     cfg.AddConsumer<DocumentDownloadedConsumer>();
-    cfg.AddConsumer<TopDownloadsRequestConsumer>();
+    cfg.AddRequestClient<UserFullNamesRequest>();
 
 
     // Configure request client with timeout from settings (default 30s)
@@ -88,12 +103,12 @@ builder.Services.AddMassTransit(cfg =>
         timeoutSeconds = configured;
     cfg.AddRequestClient<GetDocumentSummary>(new Uri("queue:catalog.get-document-summary"), RequestTimeout.After(s: timeoutSeconds));
 
- 
+
     cfg.UsingRabbitMq((context, bus) =>
     {
         // Get RabbitMQ configuration
         var mq = builder.Configuration.GetSection("RabbitMQ");
-        
+
         // Try to use Aspire's RabbitMQ connection first, fallback to configuration
         var connectionString = builder.Configuration.GetConnectionString("rabbitmq");
         if (!string.IsNullOrEmpty(connectionString))
@@ -145,12 +160,6 @@ builder.Services.AddMassTransit(cfg =>
 
         });
 
-        // ======================
-        // TopDownload
-        bus.ReceiveEndpoint("activity.top-downloads", e =>
-        {
-            e.ConfigureConsumer<TopDownloadsRequestConsumer>(context);
-        });
 
     });
 });
@@ -175,7 +184,7 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-// Auto-apply EF Core migrations on startup (first run/clone friendly)
+
 using (var scope = app.Services.CreateScope())
 {
     try
@@ -185,7 +194,7 @@ using (var scope = app.Services.CreateScope())
     }
     catch
     {
-        // Ignore migration errors at startup to avoid blocking the app when DB is unreachable
+
     }
 }
 

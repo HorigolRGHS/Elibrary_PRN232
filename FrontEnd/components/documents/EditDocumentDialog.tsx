@@ -61,21 +61,38 @@ export function EditDocumentDialog({
 
   // Initialize form when document changes or when categories/subjects load
   useEffect(() => {
-    if (document && categories.length > 0 && subjects.length > 0 && !categoriesLoading && !subjectsLoading) {
+    if (
+      document &&
+      categories.length > 0 &&
+      subjects.length > 0 &&
+      !categoriesLoading &&
+      !subjectsLoading
+    ) {
       // Find category and subject by name to get IDs
-      const category = categories.find(c => c.categoryName === document.categoryName);
-      const subject = subjects.find(s => s.subjectName === document.subjectName);
+      const category = categories.find(
+        (c) => c.CategoryName === document.categoryName
+      );
+      const subject = subjects.find(
+        (s) => s.SubjectName === document.subjectName
+      );
 
       setFormData({
         title: document.title,
         description: document.description || "",
         fileUrl: document.fileUrl || "",
-        categoryId: category?.categoryId || 0,
-        subjectId: subject?.subjectId || 0,
+        categoryId: category?.CategoryId || 0,
+        subjectId: subject?.SubjectId || 0,
       });
       setErrors({});
     }
-  }, [document, categories, subjects, categoriesLoading, subjectsLoading, isOpen]);
+  }, [
+    document,
+    categories,
+    subjects,
+    categoriesLoading,
+    subjectsLoading,
+    isOpen,
+  ]);
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -232,9 +249,7 @@ export function EditDocumentDialog({
       <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col w-[95vw] sm:w-auto">
         <DialogHeader className="flex-shrink-0">
           <DialogTitle>Edit Document</DialogTitle>
-          <DialogDescription>
-            Update document information
-          </DialogDescription>
+          <DialogDescription>Update document information</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6 py-4 overflow-y-auto flex-1 pr-2">
@@ -296,9 +311,7 @@ export function EditDocumentDialog({
 
           {/* File Upload Section */}
           <div className="space-y-3">
-            <Label className="text-base font-semibold">
-              Document File
-            </Label>
+            <Label className="text-base font-semibold">Document File</Label>
 
             {/* Current File Display */}
             {formData.fileUrl && !selectedFile && (
@@ -308,7 +321,10 @@ export function EditDocumentDialog({
                     <File className="h-5 w-5 text-primary" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-foreground break-all line-clamp-2" title={formData.fileUrl}>
+                    <p
+                      className="font-medium text-foreground break-all line-clamp-2"
+                      title={formData.fileUrl}
+                    >
                       {formData.fileUrl}
                     </p>
                     <p className="text-sm text-muted-foreground">
@@ -374,7 +390,9 @@ export function EditDocumentDialog({
                   {uploading && (
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
-                        <p className="text-sm text-muted-foreground">Uploading...</p>
+                        <p className="text-sm text-muted-foreground">
+                          Uploading...
+                        </p>
                         <p className="text-sm font-medium text-foreground">
                           {Math.round(uploadProgress)}%
                         </p>
@@ -420,18 +438,26 @@ export function EditDocumentDialog({
                 onValueChange={(value) =>
                   handleSelectChange("categoryId", value)
                 }
-                disabled={loading || categoriesLoading || categories.length === 0}
+                disabled={
+                  loading || categoriesLoading || categories.length === 0
+                }
               >
-                <SelectTrigger className={errors.categoryId ? "border-red-500" : ""}>
-                  <SelectValue placeholder={categoriesLoading ? "Loading..." : "Select a category"} />
+                <SelectTrigger
+                  className={errors.categoryId ? "border-red-500" : ""}
+                >
+                  <SelectValue
+                    placeholder={
+                      categoriesLoading ? "Loading..." : "Select a category"
+                    }
+                  />
                 </SelectTrigger>
                 <SelectContent>
                   {categories.map((cat) => (
                     <SelectItem
-                      key={cat.categoryId}
-                      value={cat.categoryId.toString()}
+                      key={cat.CategoryId}
+                      value={cat.CategoryId.toString()}
                     >
-                      {cat.categoryName}
+                      {cat.CategoryName}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -455,16 +481,22 @@ export function EditDocumentDialog({
                 }
                 disabled={loading || subjectsLoading || subjects.length === 0}
               >
-                <SelectTrigger className={errors.subjectId ? "border-red-500" : ""}>
-                  <SelectValue placeholder={subjectsLoading ? "Loading..." : "Select a subject"} />
+                <SelectTrigger
+                  className={errors.subjectId ? "border-red-500" : ""}
+                >
+                  <SelectValue
+                    placeholder={
+                      subjectsLoading ? "Loading..." : "Select a subject"
+                    }
+                  />
                 </SelectTrigger>
                 <SelectContent>
                   {subjects.map((sub) => (
                     <SelectItem
-                      key={sub.subjectId}
-                      value={sub.subjectId.toString()}
+                      key={sub.SubjectId}
+                      value={sub.SubjectId.toString()}
                     >
-                      {sub.subjectName}
+                      {sub.SubjectName}
                     </SelectItem>
                   ))}
                 </SelectContent>

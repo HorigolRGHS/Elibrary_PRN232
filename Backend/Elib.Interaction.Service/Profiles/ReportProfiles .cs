@@ -1,5 +1,4 @@
 ﻿using AutoMapper;
-using Elib.Interaction.Service.DTOs.Elib.Interaction.Service.DTOs;
 using Elib.Interaction.Service.DTOs;
 using Elib.Interaction.Service.Models;
 
@@ -10,7 +9,9 @@ namespace Elib.Interaction.Service.Profiles
         public ReportProfile()
         {
             // Model ↔ DTO
-            CreateMap<Report, ReportDTO>().ReverseMap();
+            CreateMap<Report, ReportDTO>()
+                .ForMember(dest => dest.CreatedByName, opt => opt.Ignore())
+                .ReverseMap();
 
             // DTO → Model (Create)
             CreateMap<ReportCreateDTO, Report>()

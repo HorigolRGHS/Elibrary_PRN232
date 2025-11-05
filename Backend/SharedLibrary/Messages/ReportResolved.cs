@@ -10,6 +10,7 @@ namespace SharedLibrary.Messages
         int ReportId,
         int ResolvedBy,
         string ReportTitle,
-        DateTime ResolvedAt
+        DateTime ResolvedAt,
+        int ReportedBy
     );
 }

@@ -2,8 +2,11 @@
 using Elib.Activity.Service.DTOs;
 using Elib.Activity.Service.Models;
 using Elib.Activity.Service.Repositories;
+using MassTransit;
 using Microsoft.AspNetCore.Http;
 using SharedLibrary.Commons;
+using SharedLibrary.Messages;
+using System.Runtime.InteropServices;
 
 namespace Elib.Activity.Service.Services
 {
@@ -13,18 +16,39 @@ namespace Elib.Activity.Service.Services
         private readonly IMapper _mapper;
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly INotificationViewRepository _viewRepository;
+        private readonly TimeZoneInfo _vietnamZone;
+        private readonly IRequestClient<UserFullNamesRequest> _userFullNamesClient;
+        private readonly ILogger<NotificationService> _logger;
 
-        public NotificationService(INotificationRepository repository, INotificationViewRepository viewRepository,  IMapper mapper, IHttpContextAccessor httpContextAccessor)
+        public NotificationService(
+            INotificationRepository repository,
+            INotificationViewRepository viewRepository,
+            IMapper mapper,
+            IHttpContextAccessor httpContextAccessor,
+            IRequestClient<UserFullNamesRequest> userFullNamesClient,
+            ILogger<NotificationService> logger)
         {
             _repository = repository;
             _viewRepository = viewRepository;
             _mapper = mapper;
             _httpContextAccessor = httpContextAccessor;
+            _userFullNamesClient = userFullNamesClient;
+            _logger = logger;
+
+            _vietnamZone = TimeZoneInfo.FindSystemTimeZoneById(
+                RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+                    ? "SE Asia Standard Time"
+                    : "Asia/Ho_Chi_Minh"
+            );
         }
         // ===============================================
 
         public IQueryable<NotificationDTO> AsQueryable()
         {
+
+            var usernameClaim = _httpContextAccessor.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.Name);
+            string createdByName = usernameClaim?.Value ?? "Unknown User";
+
             var query = _repository.AsQueryable()
                 .Select(n => new NotificationDTO
                 {
@@ -32,11 +56,14 @@ namespace Elib.Activity.Service.Services
                     Title = n.Title,
                     Content = n.Content,
                     CreatedBy = n.CreatedBy,
+                    CreatedByName = createdByName,
                     CreatedDate = n.CreatedDate,
                     UpdatedDate = n.UpdatedDate,
                     ScheduledDate = n.ScheduledDate,
                     Type = n.Type,
-                    Status = n.Status
+                    Status = n.Status,
+                    IsViewed = false,
+                    ViewedDate = null
                 });
 
             return query;
@@ -48,8 +75,52 @@ namespace Elib.Activity.Service.Services
         {
             var entities = await _repository.GetAllAsync();
             var dtos = _mapper.Map<IEnumerable<NotificationDTO>>(entities);
+
+
+            var userIds = dtos
+                .Where(d => d.CreatedBy.HasValue)
+                .Select(d => d.CreatedBy.Value)
+                .Distinct()
+                .ToList();
+
+            if (userIds.Any())
+            {
+                try
+                {
+                    // Gửi request lấy tên đầy đủ qua RabbitMQ
+                    var response = await _userFullNamesClient.GetResponse<UserFullNamesResponse>(
+                        new UserFullNamesRequest(Guid.NewGuid(), userIds),
+                        timeout: RequestTimeout.After(s: 3)
+                    );
+
+                    var userFullNames = response.Message.UserFullNames;
+
+                    foreach (var dto in dtos)
+                    {
+                        if (dto.CreatedBy.HasValue &&
+                            userFullNames.TryGetValue(dto.CreatedBy.Value, out var fullName))
+                        {
+                            dto.CreatedByName = fullName;
+                        }
+                        else
+                        {
+                            dto.CreatedByName ??= "Unknown";
+                        }
+                    }
+                }
+                catch (RequestTimeoutException ex)
+                {
+                    _logger.LogWarning(ex, "RabbitMQ timeout while fetching user names for notifications");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to fetch user names via RabbitMQ for notifications");
+                }
+            }
+
             return ApiResponse<IEnumerable<NotificationDTO>>.Ok(dtos);
         }
+
 
         // ===============================================
         // GET BY ID
@@ -69,42 +140,29 @@ namespace Elib.Activity.Service.Services
         {
             var entity = _mapper.Map<Notification>(dto);
 
-            // CreatedBy == DTO 
-            if (dto.CreatedBy.HasValue)
+            // 🔹 Lấy userId từ token
+            var userIdClaim = _httpContextAccessor.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+            if (userIdClaim != null && int.TryParse(userIdClaim.Value, out var userId))
             {
-                entity.CreatedBy = dto.CreatedBy.Value;
-                Console.WriteLine($"[NotificationService] CreatedBy received from DTO: {dto.CreatedBy}");
-            }
-            else
-            {
-                // HttpContext 
-                var userIdClaim = _httpContextAccessor.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
-                if (userIdClaim != null && int.TryParse(userIdClaim.Value, out var userId))
-                {
-                    entity.CreatedBy = userId;
-                    Console.WriteLine($"[NotificationService] CreatedBy extracted from HttpContext: {userId}");
-                }
-                else
-                {
-                    Console.WriteLine($"[NotificationService] ⚠️ No CreatedBy found (DTO + HttpContext are null)");
-                }
+                entity.CreatedBy = userId;
             }
 
-            entity.CreatedDate = DateTime.UtcNow;
+            entity.CreatedDate = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, _vietnamZone);
+            entity.Status = "Pending";
 
             await _repository.AddAsync(entity);
             await _repository.SaveChangesAsync();
 
             var result = _mapper.Map<NotificationDTO>(entity);
-
-            return ApiResponse<NotificationDTO>.Ok(result, "Notification scheduled successfully.");
+            return ApiResponse<NotificationDTO>.Ok(result, "Notification created successfully.");
         }
 
         //========================================
-        // Create Custom 
-
+        // CREATE CUSTOM
         public async Task<ApiResponse<NotificationDTO>> CreateCustomAsync(NotificationCreateCustomDTO dto)
         {
+            var vnNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, _vietnamZone);
+
             var entity = new Notification
             {
                 Title = dto.Title,
@@ -112,22 +170,19 @@ namespace Elib.Activity.Service.Services
                 ScheduledDate = dto.ScheduledDate,
                 Type = "Custom",
                 Status = "Pending",
-                CreatedDate = DateTime.UtcNow
+                CreatedDate = vnNow
             };
 
 
-            if (dto.CreatedBy.HasValue) entity.CreatedBy = dto.CreatedBy.Value;
-            else
+            var userIdClaim = _httpContextAccessor.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+            if (userIdClaim != null && int.TryParse(userIdClaim.Value, out var userId))
             {
-                var userIdClaim = _httpContextAccessor.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
-                if (userIdClaim != null && int.TryParse(userIdClaim.Value, out var userId))
-                    entity.CreatedBy = userId;
+                entity.CreatedBy = userId;
             }
 
             await _repository.AddAsync(entity);
-            await _repository.SaveChangesAsync(); 
+            await _repository.SaveChangesAsync();
 
-            var now = DateTime.UtcNow;
             foreach (var uid in dto.RecipientUserIds.Distinct())
             {
                 var nv = new NotificationView
@@ -135,17 +190,15 @@ namespace Elib.Activity.Service.Services
                     NotificationId = entity.NotificationId,
                     ViewedBy = uid,
                     Viewed = false,
-                    CreatedDate = now,
-                    ViewedDate = null
+                    CreatedDate = vnNow
                 };
                 await _viewRepository.AddAsync(nv);
             }
             await _viewRepository.SaveChangesAsync();
 
             var result = _mapper.Map<NotificationDTO>(entity);
-            return ApiResponse<NotificationDTO>.Ok(result, "Custom notification created and targeted recipients seeded.");
+            return ApiResponse<NotificationDTO>.Ok(result, "Custom notification created successfully.");
         }
-
 
         // ===============================================
         // UPDATE
@@ -156,6 +209,7 @@ namespace Elib.Activity.Service.Services
                 return ApiResponse<NotificationDTO>.Fail("Notification not found");
 
             _mapper.Map(dto, entity);
+            entity.UpdatedDate = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, _vietnamZone);
             await _repository.UpdateAsync(entity);
             await _repository.SaveChangesAsync();
 
@@ -214,6 +268,8 @@ namespace Elib.Activity.Service.Services
             if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
                 return ApiResponse<bool>.Fail("User not authenticated.");
 
+            var vnNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, _vietnamZone);
+
             var view = await _viewRepository.GetByUserAsync(notificationId, userId);
             if (view == null)
             {
@@ -222,15 +278,15 @@ namespace Elib.Activity.Service.Services
                     NotificationId = notificationId,
                     ViewedBy = userId,
                     Viewed = true,
-                    CreatedDate = DateTime.UtcNow,
-                    ViewedDate = DateTime.UtcNow
+                    CreatedDate = vnNow,
+                    ViewedDate = vnNow
                 };
                 await _viewRepository.AddAsync(view);
             }
             else if (!view.Viewed)
             {
                 view.Viewed = true;
-                view.ViewedDate = DateTime.UtcNow;
+                view.ViewedDate = vnNow;
                 await _viewRepository.UpdateAsync(view);
             }
 
@@ -239,29 +295,31 @@ namespace Elib.Activity.Service.Services
         }
 
         //========================================
-        // Get my 
+        // Get me 
         public IQueryable<NotificationDTO> AsQueryableForCurrentUser()
         {
             var userIdClaim = _httpContextAccessor.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
             var roleClaim = _httpContextAccessor.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.Role);
-            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out var userId))
-                userId = -1; // anonymous safety
+
+            int userId = -1;
+            if (userIdClaim != null && int.TryParse(userIdClaim.Value, out var uid)) userId = uid;
             var role = roleClaim?.Value ?? string.Empty;
 
-            var customIdsForUser = _viewRepository.AsQueryable()
-                .Where(v => v.ViewedBy == userId)
-                .Select(v => v.NotificationId);
 
-            var filtered = _repository.AsQueryable()
-                .Where(n =>
-                    n.Type == "System" ||
-                    (n.Type == "Customer" && role == "Customer") ||
-                    (n.Type == "Custom" && customIdsForUser.Contains(n.NotificationId))
-                );
+            var userViews = _viewRepository.AsQueryable().Where(v => v.ViewedBy == userId);
 
-            return filtered
-                .OrderByDescending(n => n.CreatedDate)
-                .Select(n => new NotificationDTO
+
+            var query =
+                from n in _repository.AsQueryable()
+                join v in userViews on n.NotificationId equals v.NotificationId into g
+                from v in g.DefaultIfEmpty()
+                where
+
+                    (n.Type == "System")
+                    || (n.Type == "Customer" && (role == "Customer" || role == "Admin"))
+                    || (n.Type == "Custom" && v != null)
+                orderby n.CreatedDate descending
+                select new NotificationDTO
                 {
                     NotificationId = n.NotificationId,
                     Title = n.Title,
@@ -271,8 +329,21 @@ namespace Elib.Activity.Service.Services
                     UpdatedDate = n.UpdatedDate,
                     ScheduledDate = n.ScheduledDate,
                     Type = n.Type,
-                    Status = n.Status
-                });
+                    Status = n.Status,
+                    IsViewed = v != null && v.Viewed,
+                    ViewedDate = v != null ? v.ViewedDate : null
+                };
+
+            return query;
+        }
+
+
+        public IQueryable<int> GetCustomIdsForUser(int userId)
+        {
+            if (userId <= 0) return Enumerable.Empty<int>().AsQueryable();
+            return _viewRepository.AsQueryable()
+                .Where(v => v.ViewedBy == userId)
+                .Select(v => v.NotificationId);
         }
 
         public Task<ApiResponse<NotificationDTO>> CreateAsync(NotificationDTO entity)

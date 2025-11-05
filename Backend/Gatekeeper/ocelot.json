@@ -2,31 +2,25 @@
   "Routes": [
     {
       "UpstreamPathTemplate": "/auth/{everything}",
-      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE" ],
+      "UpstreamHttpMethod": ["GET", "POST", "PUT", "DELETE"],
       "DownstreamPathTemplate": "/api/{everything}",
-      "DownstreamHostAndPorts": [
-        { "Host": "localhost", "Port": 7001 }
-      ]
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 7001 }]
     },
     {
       "UpstreamPathTemplate": "/catalog/{everything}",
-      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "PATCH", "DELETE" ],
+      "UpstreamHttpMethod": ["GET", "POST", "PUT", "PATCH", "DELETE"],
       "DownstreamPathTemplate": "/{everything}",
-      "DownstreamHostAndPorts": [
-        { "Host": "localhost", "Port": 7002 }
-      ]
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 7002 }]
     },
     {
       "UpstreamPathTemplate": "/activity/{everything}",
-      "UpstreamHttpMethod": [ "GET", "POST", "PUT" ],
+      "UpstreamHttpMethod": ["GET", "POST", "PUT", "DELETE"],
       "DownstreamPathTemplate": "/{everything}",
-      "DownstreamHostAndPorts": [
-        { "Host": "localhost", "Port": 7003 }
-      ]
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 7003 }]
     },
     {
       "UpstreamPathTemplate": "/interaction/{everything}",
-      "UpstreamHttpMethod": [ "GET", "POST", "PUT" ],
+      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE" ],
       "DownstreamPathTemplate": "/{everything}",
       "DownstreamHostAndPorts": [
         { "Host": "localhost", "Port": 7004 }
@@ -34,11 +28,9 @@
     },
     {
       "UpstreamPathTemplate": "/file/{everything}",
-      "UpstreamHttpMethod": [ "GET", "POST" ],
+      "UpstreamHttpMethod": ["GET", "POST"],
       "DownstreamPathTemplate": "/{everything}",
-      "DownstreamHostAndPorts": [
-        { "Host": "localhost", "Port": 7005 }
-      ]
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 7005 }]
     }
   ],
   "GlobalConfiguration": {

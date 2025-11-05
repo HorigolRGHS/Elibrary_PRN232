@@ -1,5 +1,4 @@
-﻿using Elib.Interaction.Service.DTOs.Elib.Interaction.Service.DTOs;
-using Elib.Interaction.Service.DTOs;
+﻿using Elib.Interaction.Service.DTOs;
 using SharedLibrary.Commons;
 using SharedLibrary.Services;
 

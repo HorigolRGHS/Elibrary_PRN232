@@ -4,7 +4,7 @@ namespace Elib.Activity.Service.DTOs
 {
     public class NotificationCreateCustomDTO
     {
-        [Required, MinLength(3)]
+
         public string Title { get; set; } = null!;
 
         [Required, StringLength(1000)]
@@ -16,6 +16,6 @@ namespace Elib.Activity.Service.DTOs
         [Required, MinLength(1, ErrorMessage = "At least one recipient is required")]
         public List<int> RecipientUserIds { get; set; } = new();
 
-        public int? CreatedBy { get; set; }
+        //public int? CreatedBy { get; set; }
     }
 }

@@ -88,6 +88,9 @@ builder.Services.AddMassTransit(cfg =>
     cfg.AddConsumer<CatalogTitlesRequestConsumer>();
     cfg.AddConsumer<CatalogCountersRequestConsumer>();
     cfg.AddConsumer<DocumentDownloadedConsumer>();
+    cfg.AddConsumer<TopDownloadsRequestConsumer>();
+
+
 
     cfg.AddRequestClient<UserFullNamesRequest>();
 
@@ -137,6 +140,13 @@ builder.Services.AddMassTransit(cfg =>
             e.ConcurrentMessageLimit = 8;
             e.UseMessageRetry(r => r.Interval(3, TimeSpan.FromSeconds(5)));
 
+        });
+        bus.ReceiveEndpoint("catalog.top-downloads.request", e =>
+        {
+            e.ConfigureConsumer<TopDownloadsRequestConsumer>(context);
+            e.PrefetchCount = 8;
+            e.ConcurrentMessageLimit = 4;
+            e.UseMessageRetry(r => r.Interval(3, TimeSpan.FromSeconds(5)));
         });
     });
 });

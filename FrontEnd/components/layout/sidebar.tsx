@@ -3,11 +3,13 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Dispatch, SetStateAction } from "react";
-import { 
-  Users, 
-  BookOpen, 
-  FolderOpen, 
-  LayoutDashboard, 
+import {
+  Users,
+  BookOpen,
+  Bell,
+  BarChart2,
+  FolderOpen,
+  LayoutDashboard,
   Settings,
   X,
   ChevronRight,
@@ -58,6 +60,18 @@ const sidebarConfig: SidebarGroupConfig[] = [
         href: "/dashboard/documents",
         icon: BookOpen,
         description: "Manage documents",
+      },
+      {
+        title: "Notifications",
+        href: "/dashboard/notifications",
+        icon: Bell,
+        description: "View system notifications",
+      },
+      {
+        title: "Reports",
+        href: "/dashboard/reports",
+        icon: BarChart2,
+        description: "View reports and analytics",
       },
       {
         title: "Subjects",

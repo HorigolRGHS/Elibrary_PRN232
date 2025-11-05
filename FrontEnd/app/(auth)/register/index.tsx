@@ -236,7 +236,7 @@ export default function RegisterIndex() {
           <div className="text-center space-y-4">
             <Image
               onClick={() => router.push("/")}
-              src="https://ik.imagekit.io/i0aiv29ol/EMC%20Library.png?updatedAt=1760115301250"
+              src="/image/BeluLibrary.png"
               alt="E-Library"
               width={260}
               height={260}
