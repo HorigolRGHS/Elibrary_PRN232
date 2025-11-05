@@ -63,6 +63,18 @@ using SharedLibrary.Commons;
             if (documentId <= 0)
                 throw new ArgumentException("DocumentId must be greater than 0", nameof(documentId));
 
+            // If user is null (anonymous/guest), skip recording
+            if (!userId.HasValue)
+                return;
+
+            // Check if user has already downloaded this document
+            var alreadyDownloaded = await _repo.HasUserDownloadedAsync(documentId, userId.Value, ct);
+            if (alreadyDownloaded)
+            {
+                // Skip recording - user already downloaded this document before
+                return;
+            }
+
             // Ensure timestamp is valid
             if (when == default)
                 when = DateTime.UtcNow;
@@ -71,6 +83,7 @@ using SharedLibrary.Commons;
             if (when > DateTime.UtcNow.AddMinutes(5))
                 when = DateTime.UtcNow;
 
+            // Record first-time download
             await _repo.RecordUserDownload(new Models.DownloadHistory
             {
                 DocumentId = documentId,

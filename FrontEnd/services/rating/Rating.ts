@@ -66,7 +66,7 @@ export const RatingService = {
     if (data.StarRating !== undefined) payload.StarRating = data.StarRating;
     if (data.Review !== undefined) payload.Review = data.Review;
 
-    return await api.put(`/interaction/api/ratings/${id}`, payload);
+    return await api.put(`/interaction/api/ratings/(${id})`, payload);
   },
 
   deleteRating: async (id: number) => {

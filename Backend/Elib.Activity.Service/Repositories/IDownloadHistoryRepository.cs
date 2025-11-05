@@ -9,6 +9,7 @@ namespace Elib.Activity.Service.Repositories
         IQueryable<DownloadHistory> QueryByUser(int userId);
         Task<DownloadHistory?> GetByIdAsync(int downloadId, CancellationToken ct = default);
         Task RecordUserDownload(DownloadHistory download, CancellationToken ct = default);
+        Task<bool> HasUserDownloadedAsync(int documentId, int userId, CancellationToken ct = default);
 
         Task<List<(int DocumentId, int Total, DateTime LastDownloadedDate)>> GetTopDownloadsAsync(
             int take,
@@ -17,3 +18,4 @@ namespace Elib.Activity.Service.Repositories
             CancellationToken ct = default);
     }
 }
+

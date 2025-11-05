@@ -50,6 +50,13 @@ namespace Elib.Activity.Service.Repositories
             await _context.SaveChangesAsync(ct);
         }
 
+        public async Task<bool> HasUserDownloadedAsync(int documentId, int userId, CancellationToken ct = default)
+        {
+            return await _context.DownloadHistories
+                .AsNoTracking()
+                .AnyAsync(x => x.DocumentId == documentId && x.DownloadedBy == userId, ct);
+        }
+
         public async Task<List<(int DocumentId, int Total, DateTime LastDownloadedDate)>> GetTopDownloadsAsync(
             int take,
             DateTime? from = null,

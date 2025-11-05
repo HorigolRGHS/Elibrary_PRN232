@@ -30,6 +30,15 @@ namespace Elib.Activity.Service.Messaging.Consumer
                 return;
             }
 
+            // Skip if anonymous user
+            if (m.UserId <= 0)
+            {
+                _logger.LogDebug(
+                    "[DownloadSkipped] Anonymous download for DocId={DocId}. Not recording.",
+                    m.DocumentId);
+                return;
+            }
+
             try
             {
                 await _history.RecordUserDownloadAsync(
@@ -40,7 +49,7 @@ namespace Elib.Activity.Service.Messaging.Consumer
                 );
 
                 _logger.LogInformation(
-                    "[DownloadLogged] DocId={DocId} UserId={UserId} File={File} At={AtUtc}",
+                    "[DownloadLogged] First download recorded: DocId={DocId} UserId={UserId} File={File} At={AtUtc}",
                     m.DocumentId, m.UserId, m.FileName, m.DownloadedAt);
             }
             catch (Exception ex)

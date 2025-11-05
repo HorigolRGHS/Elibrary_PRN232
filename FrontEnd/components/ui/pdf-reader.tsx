@@ -176,6 +176,7 @@ export default function PDFReader(props: PDFReaderProps) {
       setError(null);
       
       let newFileUrl: string | null = null;
+      let oldFileUrl: string | null = null;
 
       if (file instanceof File || file instanceof Blob) {
         // Create object URL instead of ArrayBuffer to avoid detached buffer issues
@@ -186,11 +187,17 @@ export default function PDFReader(props: PDFReaderProps) {
 
       // Clean up previous URL before setting new one
       setFileUrl((prevUrl) => {
-        if (prevUrl && prevUrl.startsWith('blob:')) {
-          URL.revokeObjectURL(prevUrl);
+        // Store old URL for cleanup
+        if (prevUrl && prevUrl.startsWith('blob:') && prevUrl !== newFileUrl) {
+          oldFileUrl = prevUrl;
         }
         return newFileUrl;
       });
+
+      // Clean up old URL after state is updated
+      if (oldFileUrl) {
+        URL.revokeObjectURL(oldFileUrl);
+      }
     } else {
       // Clean up URL when file is removed
       setFileUrl((prevUrl) => {
@@ -201,8 +208,17 @@ export default function PDFReader(props: PDFReaderProps) {
       });
     }
 
-    // Cleanup function
+    // Cleanup function - only cleanup when component unmounts or file actually changes
     return () => {
+      // Don't cleanup here - let the next effect or component unmount handle it
+      // This prevents premature revocation during re-renders
+    };
+  }, [file]);
+
+  // Separate cleanup effect for component unmount
+  useEffect(() => {
+    return () => {
+      // Only cleanup when component is actually unmounting
       setFileUrl((prevUrl) => {
         if (prevUrl && prevUrl.startsWith('blob:')) {
           URL.revokeObjectURL(prevUrl);
@@ -210,7 +226,7 @@ export default function PDFReader(props: PDFReaderProps) {
         return null;
       });
     };
-  }, [file]);
+  }, []); // Empty dependency array - runs only on mount/unmount
 
   if (!file)
     return (

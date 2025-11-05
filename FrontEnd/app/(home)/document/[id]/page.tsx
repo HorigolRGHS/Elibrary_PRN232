@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import dynamic from "next/dynamic";
 import {
   Calendar,
@@ -225,6 +225,22 @@ export default function DocumentPage() {
     }
   };
 
+  // Memoize PDF Reader to prevent re-renders when dialogs open/close
+  const pdfReaderComponent = useMemo(() => {
+    if (!documentStream) return null;
+    
+    return (
+      <PDFReader
+        file={documentStream}
+        height="600px"
+        onLoadError={handlePDFLoadError}
+        enableRotate={true}
+        enableZoom={true}
+        className="w-full"
+      />
+    );
+  }, [documentStream]); // Only re-create when documentStream changes
+
   if (loading) {
     return (
       <div className="container mx-auto px-4 py-8">
@@ -386,14 +402,7 @@ export default function DocumentPage() {
             </div>
           )}
           {documentStream ? (
-            <PDFReader
-              file={documentStream}
-              height="600px"
-              onLoadError={handlePDFLoadError}
-              enableRotate={true}
-              enableZoom={true}
-              className="w-full"
-            />
+            pdfReaderComponent
           ) : (
             <div className="h-[600px] flex items-center justify-center border-2 border-dashed border-gray-300 rounded-lg">
               <div className="text-center">
