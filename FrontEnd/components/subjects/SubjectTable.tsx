@@ -41,7 +41,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { SortState } from "@/app/(dashboard)/dashboard/subjects/types";
 import { subjectColumns } from "@/app/(dashboard)/dashboard/subjects/config";
 import { SubjectService } from "@/services/subject/Subject";
-import { SubjectResponseDTO, SubjectDetailDTO } from "@/models/dtos/subjectDTO";
+import { SubjectResponseDTO, SubjectDetailDTO, camelSubjectDetailDTO } from "@/models/dtos/subjectDTO";
 import SubjectForm from "@/components/subjects/SubjectForm";
 import ViewSubjectSheet from "@/components/subjects/ViewSubjectSheet";
 
@@ -60,22 +60,17 @@ export function SubjectTable({
   onSortChange,
   onActionSuccess,
 }: SubjectTableProps) {
-  // State chung cho các hành động (như delete)
   const [isActionLoading, setIsActionLoading] = useState(false);
   
-  // States cho View Sheet
   const [viewingSubjectId, setViewingSubjectId] = useState<number | null>(null);
   const [isViewSheetOpen, setIsViewSheetOpen] = useState(false);
 
-  // State cho Delete Dialog
   const [deletingSubjectId, setDeletingSubjectId] = useState<number | null>(null);
   
-  // States cho Edit Dialog
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [editingSubject, setEditingSubject] = useState<SubjectDetailDTO | null>(null);
+  const [editingSubject, setEditingSubject] = useState<camelSubjectDetailDTO | null>(null);
   const [isEditingLoading, setIsEditingLoading] = useState(false);
 
-  // Lấy sort icon
   const getSortIcon = (columnKey: string) => {
     if (sort.field !== columnKey || !sort.direction) {
       return <ArrowUpDown className="ml-2 size-4" />;
@@ -87,8 +82,6 @@ export function SubjectTable({
     );
   };
   
-  // --- Event Handlers ---
-
   const handleViewClick = (subjectId: number) => {
     setViewingSubjectId(subjectId);
     setIsViewSheetOpen(true);
@@ -97,9 +90,9 @@ export function SubjectTable({
   const handleEditClick = async (subjectId: number) => {
     setIsEditDialogOpen(true);
     setIsEditingLoading(true);
-    setEditingSubject(null); // Xóa dữ liệu cũ
+    setEditingSubject(null);
     try {
-      const details = await SubjectService.getSubjectById(subjectId);
+      const details = await SubjectService.getCamelSubjectById(subjectId);
       if (details) {
         setEditingSubject(details);
       } else {
@@ -133,7 +126,6 @@ export function SubjectTable({
     }
   };
   
-  // --- Render Logic ---
 
   if (loading) return <SubjectTableSkeleton />;
 
@@ -177,11 +169,11 @@ export function SubjectTable({
 
             <TableBody>
               {items.map((row) => (
-                <TableRow key={row.subjectId}>
+                <TableRow key={row.SubjectId}>
                   {subjectColumns.map((col) => {
                     const cellValue = row[col.key as keyof SubjectResponseDTO];
                     return (
-                      <TableCell key={`${row.subjectId}-${col.key}`}>
+                      <TableCell key={`${row.SubjectId}-${col.key}`}>
                         {col.render ? col.render(cellValue, row) : cellValue}
                       </TableCell>
                     );
@@ -195,20 +187,20 @@ export function SubjectTable({
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem
-                          onClick={() => handleEditClick(row.subjectId)}
+                          onClick={() => handleEditClick(row.SubjectId)}
                           className="flex items-center gap-2"
                         >
                           <Edit className="h-4 w-4" /> Edit
                         </DropdownMenuItem>
                         <DropdownMenuItem
-                          onClick={() => handleViewClick(row.subjectId)}
+                          onClick={() => handleViewClick(row.SubjectId)}
                           className="flex items-center gap-2"
                         >
                           <Eye className="h-4 w-4" /> View Details
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
-                          onClick={() => handleDeleteClick(row.subjectId)}
+                          onClick={() => handleDeleteClick(row.SubjectId)}
                           className="flex items-center gap-2 text-destructive focus:text-destructive"
                           disabled={isActionLoading}
                         >
@@ -252,7 +244,7 @@ export function SubjectTable({
         <ViewSubjectSheet
           open={isViewSheetOpen}
           onOpenChange={setIsViewSheetOpen}
-          subjectId={viewingSubjectId}
+          SubjectId={viewingSubjectId}
         />
       )}
 
@@ -265,7 +257,7 @@ export function SubjectTable({
             }
             setIsEditDialogOpen(open);
           }}
-          initial={isEditingLoading ? null : editingSubject}
+          camelInitial={isEditingLoading ? null : editingSubject}
           onSaved={() => {
             onActionSuccess?.();
             setIsEditDialogOpen(false);

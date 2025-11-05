@@ -5,6 +5,9 @@ using Elib.Interaction.Service.Repositories;
 using Microsoft.CodeAnalysis.Editing;
 using SharedLibrary.Commons;
 using SharedLibrary.Messages;
+using MassTransit;
+using System.Net.Http;
+using System.Text.Json;
 
 namespace Elib.Interaction.Service.Services
 {
@@ -12,17 +15,63 @@ namespace Elib.Interaction.Service.Services
     {
         private readonly ICommentRepository _commentRepository;
         private readonly IMapper _mapper;
+        private readonly IRequestClient<UserFullNamesRequest> _userNamesClient;
+        private readonly IHttpClientFactory _httpFactory;
 
-        public CommentService(ICommentRepository commentRepository, IMapper mapper)
+        public CommentService(ICommentRepository commentRepository, IMapper mapper, IRequestClient<UserFullNamesRequest> userNamesClient, IHttpClientFactory httpFactory)
         {
             _commentRepository = commentRepository;
             _mapper = mapper;
+            _userNamesClient = userNamesClient;
+            _httpFactory = httpFactory;
         }
 
         public async Task<ApiResponse<IEnumerable<CommentListDTO>>> GetCommentsByDocumentIdAsync(int documentId)
         {
             var comments = await _commentRepository.GetCommentsByDocumentIdAsync(documentId);
-            var listDtos = _mapper.Map<IEnumerable<CommentListDTO>>(comments);
+            var listDtos = _mapper.Map<IEnumerable<CommentListDTO>>(comments).ToList();
+
+            var userIds = listDtos.Where(d => d.CreatedBy.HasValue).Select(d => d.CreatedBy!.Value).Distinct().ToList();
+            Dictionary<int, string> map = new();
+
+            if (userIds.Any())
+            {
+                // Try MassTransit request first
+                try
+                {
+                    var req = new UserFullNamesRequest(Guid.NewGuid(), userIds);
+                    var resp = await _userNamesClient.GetResponse<UserFullNamesResponse>(req);
+                    if (resp?.Message?.UserFullNames is not null)
+                        map = resp.Message.UserFullNames;
+                }
+                catch
+                {
+                    // ignore and fallback to HTTP
+                }
+
+                // Fallback to HTTP for any missing ids
+                var missing = userIds.Where(id => !map.ContainsKey(id)).ToList();
+                if (missing.Any())
+                {
+                    try
+                    {
+                        var httpMap = await GetUserFullNamesByHttpAsync(missing);
+                        foreach (var kv in httpMap)
+                            map[kv.Key] = kv.Value;
+                    }
+                    catch
+                    {
+                        // ignore
+                    }
+                }
+
+                // Assign full names
+                foreach (var dto in listDtos)
+                {
+                    if (dto.CreatedBy.HasValue && map.TryGetValue(dto.CreatedBy.Value, out var fullName))
+                        dto.CreatedByFullName = fullName;
+                }
+            }
 
             return ApiResponse<IEnumerable<CommentListDTO>>.Ok(listDtos, "Fetched comments successfully");
         }
@@ -34,6 +83,38 @@ namespace Elib.Interaction.Service.Services
                 return ApiResponse<CommentReadDTO>.Fail("Comment not found");
 
             var dto = _mapper.Map<CommentReadDTO>(comment);
+
+            if (dto.CreatedBy.HasValue)
+            {
+                string? name = null;
+                try
+                {
+                    var req = new UserFullNamesRequest(Guid.NewGuid(), new List<int> { dto.CreatedBy.Value });
+                    var resp = await _userNamesClient.GetResponse<UserFullNamesResponse>(req);
+                    if (resp?.Message?.UserFullNames != null)
+                        resp.Message.UserFullNames.TryGetValue(dto.CreatedBy.Value, out name);
+                }
+                catch
+                {
+                    // ignore
+                }
+
+                if (string.IsNullOrEmpty(name))
+                {
+                    try
+                    {
+                        var httpMap = await GetUserFullNamesByHttpAsync(new List<int> { dto.CreatedBy.Value });
+                        httpMap.TryGetValue(dto.CreatedBy.Value, out name);
+                    }
+                    catch
+                    {
+                        // ignore
+                    }
+                }
+
+                dto.CreatedByFullName = name;
+            }
+
             return ApiResponse<CommentReadDTO>.Ok(dto, "Fetched comment successfully");
         }
 
@@ -78,5 +159,42 @@ namespace Elib.Interaction.Service.Services
             return ApiResponse<bool>.Ok(true, "Comment deleted successfully");
         }
 
+        private async Task<Dictionary<int, string>> GetUserFullNamesByHttpAsync(IEnumerable<int> ids)
+        {
+            var result = new Dictionary<int, string>();
+            var client = _httpFactory.CreateClient("AuthService");
+
+            var tasks = ids.Select(async id =>
+            {
+                try
+                {
+                    var resp = await client.GetAsync($"api/users/{id}");
+                    if (!resp.IsSuccessStatusCode) return;
+
+                    var json = await resp.Content.ReadAsStringAsync();
+                    using var doc = JsonDocument.Parse(json);
+                    if (doc.RootElement.TryGetProperty("data", out var data) && data.ValueKind == JsonValueKind.Object)
+                    {
+                        if (data.TryGetProperty("fullName", out var fullNameProp))
+                        {
+                            var fn = fullNameProp.GetString();
+                            if (!string.IsNullOrEmpty(fn)) result[id] = fn;
+                        }
+                        else if (data.TryGetProperty("FullName", out var fullNameProp2))
+                        {
+                            var fn2 = fullNameProp2.GetString();
+                            if (!string.IsNullOrEmpty(fn2)) result[id] = fn2;
+                        }
+                    }
+                }
+                catch
+                {
+                    // ignore per-id failures
+                }
+            });
+
+            await Task.WhenAll(tasks);
+            return result;
+        }
     }
 }

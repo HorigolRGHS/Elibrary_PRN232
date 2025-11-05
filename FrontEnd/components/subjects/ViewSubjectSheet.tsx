@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SubjectService } from "@/services/subject/Subject";
-import { SubjectDetailDTO } from "@/models/dtos/subjectDTO";
+import { camelSubjectDetailDTO, SubjectDetailDTO } from "@/models/dtos/subjectDTO";
 import Image from "next/image";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
@@ -21,15 +21,15 @@ import { useRouter } from "next/navigation";
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  subjectId: number;
+  SubjectId: number;
 }
 
 export default function ViewSubjectSheet({
   open,
   onOpenChange,
-  subjectId,
+  SubjectId: subjectId,
 }: Props) {
-  const [subject, setSubject] = useState<SubjectDetailDTO | null>(null);
+  const [subject, setSubject] = useState<camelSubjectDetailDTO | null>(null);
   const [loading, setLoading] = useState(true);
   const [zoomed, setZoomed] = useState(false);
   const router = useRouter();
@@ -39,7 +39,7 @@ export default function ViewSubjectSheet({
     const load = async () => {
       setLoading(true);
       try {
-        const data = await SubjectService.getSubjectById(subjectId);
+        const data = await SubjectService.getCamelSubjectById(subjectId);
         setSubject(data);
       } catch {
         toast.error("Failed to load subject details");
@@ -52,10 +52,11 @@ export default function ViewSubjectSheet({
   }, [subjectId, open]);
 
   const handleDocumentClick = (id: number) => {
-    onOpenChange(false); // Đóng sheet trước
-    router.push(`/document/${id}`); // Chuyển sang trang document chi tiết
+    onOpenChange(false);
+    router.push(`/document/${id}`);
   };
 
+  console.log("Subject:", subject);
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
@@ -101,6 +102,7 @@ export default function ViewSubjectSheet({
                       src={subject.imageUrl}
                       alt={subject.subjectName}
                       fill
+                      unoptimized
                       className="object-cover group-hover:scale-105 transition-transform duration-300"
                     />
                   </div>
@@ -138,8 +140,8 @@ export default function ViewSubjectSheet({
                   <span>
                     {subject.updatedDate
                       ? new Date(subject.updatedDate).toLocaleDateString(
-                          "en-US"
-                        )
+                        "en-US"
+                      )
                       : "N/A"}
                   </span>
                 </div>
@@ -150,9 +152,9 @@ export default function ViewSubjectSheet({
               {/* 📚 Documents */}
               <div>
                 <h3 className="text-sm font-semibold mb-2">
-                  Documents ({subject.documents.length})
+                  Documents ({subject.documents?.length})
                 </h3>
-                {subject.documents.length > 0 ? (
+                {subject.documents?.length > 0 ? (
                   <ul className="grid gap-2">
                     {subject.documents.map((doc) => (
                       <li
@@ -193,17 +195,19 @@ export default function ViewSubjectSheet({
             className="fixed inset-0 bg-black/80 flex items-center justify-center z-50"
             onClick={() => setZoomed(false)}
           >
-            <div className="relative max-w-3xl max-h-[80vh]">
+            <div className="relative max-w-[90vw] max-h-[90vh]">
               <Image
                 src={subject.imageUrl}
                 alt={subject.subjectName}
                 width={800}
                 height={600}
-                className="rounded-lg shadow-lg object-contain"
+                unoptimized
+                className="rounded-lg shadow-lg object-contain w-auto h-auto max-w-full max-h-[90vh]"
               />
             </div>
           </div>
         )}
+
       </SheetContent>
     </Sheet>
   );

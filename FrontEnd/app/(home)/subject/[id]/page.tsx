@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { SubjectSelect } from "@/models/dtos/subjectDTO";
+import { camelSubjectDetailDTO, SubjectSelect } from "@/models/dtos/subjectDTO";
 import { SubjectService } from "@/services/subject/Subject";
 import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
@@ -11,7 +11,7 @@ import { FileText } from "lucide-react";
 export default function SubjectPage() {
   const params = useParams();
   const router = useRouter();
-  const [subject, setSubject] = useState<SubjectSelect | null>(null);
+  const [subject, setSubject] = useState<camelSubjectDetailDTO | null>(null);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -25,7 +25,7 @@ export default function SubjectPage() {
           router.push('/404');
           return;
         }
-        const data = await SubjectService.getSubjectById(id);
+        const data = await SubjectService.getCamelSubjectById(id);
         setSubject(data);
       } catch (error) {
         console.error('Error fetching subject:', error);
@@ -58,6 +58,8 @@ export default function SubjectPage() {
       </div>
     );
   }
+
+  console.log("Subject Page render:", subject);
 
   return (
     <div className="container mx-auto p-8">

@@ -15,7 +15,6 @@ import { ImageUploadSection } from "@/components/subjects/ImageUploadSection";
 import { SubjectService } from "@/services/subject/Subject";
 import { SubjectCreateDTO } from "@/models/dtos/subjectDTO";
 import { toast } from "react-toastify";
-// FIX: Import service upload ảnh và icon loading
 import { uploadToImageKit } from "@/services/Common/fileService";
 import { Loader2 } from "lucide-react";
 
@@ -34,10 +33,8 @@ export default function AddSubjectDialog({
   const [description, setDescription] = useState("");
   const [saving, setSaving] = useState(false);
   
-  // FIX: Thêm state để quản lý file ảnh được chọn
   const [newImageFile, setNewImageFile] = useState<File | null>(null);
   
-  // Reset form khi dialog đóng
   useEffect(() => {
     if (!open) {
       setName("");
@@ -57,7 +54,6 @@ export default function AddSubjectDialog({
     let finalImageUrl: string | undefined = undefined;
 
     try {
-      // FIX: Chỉ upload khi có file được chọn
       if (newImageFile) {
         try {
           toast.info("Uploading image...");
@@ -70,7 +66,7 @@ export default function AddSubjectDialog({
       const payload: SubjectCreateDTO = {
         subjectName: name,
         imageUrl: finalImageUrl,
-        description,
+        description: description,
       };
 
       await SubjectService.createSubject(payload);
@@ -106,9 +102,7 @@ export default function AddSubjectDialog({
           {/* Image */}
           <div>
             <ImageUploadSection
-              // Không có ảnh ban đầu
               initialImageUrl={null}
-              // Cập nhật state file mới
               onFileChange={(file) => setNewImageFile(file)}
               shouldReset={!open}
             />
