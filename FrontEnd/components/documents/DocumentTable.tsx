@@ -65,11 +65,15 @@ export function DocumentTable({
 
   useEffect(() => {
     const loadDocDetails = async () => {
-      if (!editingDocId || !isEditDialogOpen) return;
+      if (!editingDocId || !isEditDialogOpen) {
+        setEditingDoc(null);
+        return;
+      }
       try {
         const details = await DocumentService.getUserDocumentDetails(editingDocId);
         setEditingDoc(details);
       } catch (e) {
+        console.error("Failed to load document details:", e);
         // Fallback to minimal info from list if fetch fails
         const base = data.find(d => d.documentId === editingDocId);
         if (base) {
@@ -348,20 +352,18 @@ export function DocumentTable({
       />
 
       {/* Edit Document Dialog */}
-      {editingDocId && editingDoc && (
-        <EditDocumentDialog
-          isOpen={isEditDialogOpen}
-          document={editingDoc}
-          onClose={() => {
-            setIsEditDialogOpen(false);
-            setEditingDocId(null);
-            setEditingDoc(null);
-          }}
-          onSuccess={() => {
-            onActionSuccess?.();
-          }}
-        />
-      )}
+      <EditDocumentDialog
+        isOpen={isEditDialogOpen}
+        document={editingDoc}
+        onClose={() => {
+          setIsEditDialogOpen(false);
+          setEditingDocId(null);
+          setEditingDoc(null);
+        }}
+        onSuccess={() => {
+          onActionSuccess?.();
+        }}
+      />
     </div>
   );
 }

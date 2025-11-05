@@ -27,7 +27,7 @@ import { Progress } from "@/components/ui/progress";
 import { DocumentUserResponseItemDTO } from "@/models/dtos/documentDTO";
 import { DocumentService } from "@/services/document/Document";
 import { useCategories } from "@/hooks/useCategories";
-import { useSubjects } from "@/hooks/useSubjects";
+import { useSubjectsForSelect } from "@/hooks/useSubjectsForSelect";
 import { StorageService } from "@/services/storage/Storage";
 
 interface EditDocumentDialogProps {
@@ -44,12 +44,22 @@ export function EditDocumentDialog({
   onSuccess,
 }: EditDocumentDialogProps) {
   const { categories, loading: categoriesLoading } = useCategories();
-  const { subjects, loading: subjectsLoading } = useSubjects();
+  const { subjects, loading: subjectsLoading } = useSubjectsForSelect();
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+
+  // Debug logging
+  useEffect(() => {
+    console.log("[EditDocumentDialog] Subjects state:", {
+      subjects,
+      subjectsCount: subjects.length,
+      subjectsLoading,
+      firstSubject: subjects[0],
+    });
+  }, [subjects, subjectsLoading]);
 
   const [formData, setFormData] = useState({
     title: "",
@@ -60,13 +70,29 @@ export function EditDocumentDialog({
   });
 
   useEffect(() => {
-    if (
-      document &&
-      categories.length > 0 &&
-      subjects.length > 0 &&
-      !categoriesLoading &&
-      !subjectsLoading
-    ) {
+    // Reset form when dialog closes
+    if (!isOpen) {
+      setFormData({
+        title: "",
+        description: "",
+        fileUrl: "",
+        categoryId: 0,
+        subjectId: 0,
+      });
+      setErrors({});
+      setSelectedFile(null);
+      setUploadProgress(0);
+      return;
+    }
+
+    // Populate form when dialog opens and document is available
+    if (isOpen && document) {
+      // Wait for categories and subjects to be loaded
+      if (categoriesLoading || subjectsLoading) {
+        return;
+      }
+
+      // Find matching category and subject
       const category = categories.find(
         (c) => c.CategoryName === document.categoryName
       );
@@ -74,22 +100,32 @@ export function EditDocumentDialog({
         (s) => s.SubjectName === document.subjectName
       );
 
+      console.log("[EditDocumentDialog] Populating form:", {
+        document,
+        categoryFound: category,
+        subjectFound: subject,
+        allCategories: categories,
+        allSubjects: subjects,
+      });
+
       setFormData({
-        title: document.title,
+        title: document.title || "",
         description: document.description || "",
         fileUrl: document.fileUrl || "",
         categoryId: category?.CategoryId || 0,
         subjectId: subject?.SubjectId || 0,
       });
       setErrors({});
+      setSelectedFile(null);
+      setUploadProgress(0);
     }
   }, [
+    isOpen,
     document,
     categories,
     subjects,
     categoriesLoading,
     subjectsLoading,
-    isOpen,
   ]);
 
   const validateForm = (): boolean => {
@@ -246,7 +282,20 @@ export function EditDocumentDialog({
           <DialogDescription>Update document information</DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6 py-4 overflow-y-auto flex-1 pr-2">
+        {/* Loading State */}
+        {(!document || categoriesLoading || subjectsLoading) && (
+          <div className="flex items-center justify-center py-12">
+            <div className="flex flex-col items-center gap-3">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <p className="text-sm text-muted-foreground">Loading document data...</p>
+            </div>
+          </div>
+        )}
+
+        {/* Form Content */}
+        {document && !categoriesLoading && !subjectsLoading && (
+          <>
+            <div className="space-y-6 py-4 overflow-y-auto flex-1 pr-2">
           {/* Title */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
@@ -446,16 +495,22 @@ export function EditDocumentDialog({
                   />
                 </SelectTrigger>
                 <SelectContent>
-                  {categories
-                    .filter((cat) => cat.CategoryId && cat.CategoryName)
-                    .map((cat) => (
-                      <SelectItem
-                        key={cat.CategoryId}
-                        value={cat.CategoryId?.toString() || ""}
-                      >
-                        {cat.CategoryName}
-                      </SelectItem>
-                    ))}
+                  {categories.length === 0 && !categoriesLoading ? (
+                    <div className="p-2 text-center text-sm text-muted-foreground">
+                      No categories available
+                    </div>
+                  ) : (
+                    categories
+                      .filter((cat) => cat.CategoryId && cat.CategoryName)
+                      .map((cat) => (
+                        <SelectItem
+                          key={cat.CategoryId}
+                          value={cat.CategoryId?.toString() || ""}
+                        >
+                          {cat.CategoryName}
+                        </SelectItem>
+                      ))
+                  )}
                 </SelectContent>
               </Select>
               {errors.categoryId && (
@@ -487,16 +542,22 @@ export function EditDocumentDialog({
                   />
                 </SelectTrigger>
                 <SelectContent>
-                  {subjects
-                    .filter((sub) => sub.SubjectId && sub.SubjectName)
-                    .map((sub) => (
-                      <SelectItem
-                        key={sub.SubjectId}
-                        value={sub.SubjectId?.toString() || ""}
-                      >
-                        {sub.SubjectName}
-                      </SelectItem>
-                    ))}
+                  {subjects.length === 0 && !subjectsLoading ? (
+                    <div className="p-2 text-center text-sm text-muted-foreground">
+                      No subjects available
+                    </div>
+                  ) : (
+                    subjects
+                      .filter((sub) => sub.SubjectId && sub.SubjectName)
+                      .map((sub) => (
+                        <SelectItem
+                          key={sub.SubjectId}
+                          value={sub.SubjectId?.toString() || ""}
+                        >
+                          {sub.SubjectName}
+                        </SelectItem>
+                      ))
+                  )}
                 </SelectContent>
               </Select>
               {errors.subjectId && (
@@ -527,6 +588,8 @@ export function EditDocumentDialog({
             {loading ? "Updating..." : "Update"}
           </Button>
         </DialogFooter>
+          </>
+        )}
       </DialogContent>
     </Dialog>
   );
