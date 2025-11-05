@@ -14,7 +14,8 @@ import {
   X,
   ChevronRight,
   Star,
-  type LucideIcon
+  type LucideIcon,
+  GraduationCap
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -76,7 +77,7 @@ const sidebarConfig: SidebarGroupConfig[] = [
       {
         title: "Subjects",
         href: "/dashboard/subjects",
-        icon: FolderOpen,
+        icon: GraduationCap,
         description: "Manage subjects",
       },
       {
