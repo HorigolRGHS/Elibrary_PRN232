@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
 import {
@@ -27,13 +27,30 @@ import { DocumentService } from "@/services/document/Document";
 import { CreateDocumentRequest } from "@/models/dtos/documentDTO";
 import { FileUploadSection } from "@/components/documents/FileUploadSection";
 import { useCategories } from "@/hooks/useCategories";
-import { useSubjects } from "@/hooks/useSubjects";
+import { useSubjectsForSelect } from "@/hooks/useSubjectsForSelect";
+import { SubjectResponseDTO } from "@/models/dtos/subjectDTO";
 
 export default function DocumentUploadPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const { categories } = useCategories();
-  const { subjects } = useSubjects();
+  const { categories, loading: categoriesLoading } = useCategories();
+  const { subjects, loading: subjectsLoading, error: subjectsError } = useSubjectsForSelect();
+
+  // Debug: Log subjects data when component updates
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      console.log("DocumentUploadPage - subjects:", subjects);
+      console.log("DocumentUploadPage - subjectsLoading:", subjectsLoading);
+      console.log("DocumentUploadPage - subjectsError:", subjectsError);
+      console.log("DocumentUploadPage - subjects.length:", subjects.length);
+      if (subjects.length > 0) {
+        console.log("First subject details:", subjects[0]);
+        console.log("Subject keys:", Object.keys(subjects[0]));
+        console.log("Subject ID:", subjects[0].subjectId);
+        console.log("Subject Name:", subjects[0].subjectName);
+      }
+    }
+  }, [subjects, subjectsLoading, subjectsError]);
 
   const [formData, setFormData] = useState<CreateDocumentRequest>({
     title: "",
@@ -100,7 +117,7 @@ export default function DocumentUploadPage() {
 
     setLoading(true);
     try {
-      const response = await DocumentService.createDocument(formData);
+      await DocumentService.createDocument(formData);
       toast.success(`Document created successfully!`);
 
       // Clean form after successful submission
@@ -147,7 +164,9 @@ export default function DocumentUploadPage() {
     setFormData((prev) => ({
       ...prev,
       [name]:
-        name === "categoryId" || name === "subjectId" ? parseInt(value) : value,
+        name === "categoryId" || name === "subjectId" 
+          ? (value && value !== "" ? parseInt(value, 10) : 0)
+          : value,
     }));
     if (errors[name]) {
       setErrors((prev) => ({
@@ -289,11 +308,11 @@ export default function DocumentUploadPage() {
                     Category *
                   </Label>
                   <Select
-                    value={formData.categoryId?.toString() || ""}
+                    value={formData.categoryId && formData.categoryId > 0 ? formData.categoryId.toString() : ""}
                     onValueChange={(value) =>
                       handleSelectChange("categoryId", value)
                     }
-                    disabled={loading}
+                    disabled={loading || categoriesLoading}
                   >
                     <SelectTrigger
                       id="categoryId"
@@ -303,17 +322,29 @@ export default function DocumentUploadPage() {
                           : ""
                       }`}
                     >
-                      <SelectValue placeholder="Select a category" />
+                      <SelectValue placeholder={categoriesLoading ? "Loading..." : categories.length === 0 ? "No categories available" : "Select a category"} />
                     </SelectTrigger>
                     <SelectContent>
-                      {categories.map((cat) => (
-                        <SelectItem
-                          key={cat.categoryId}
-                          value={cat.categoryId.toString()}
-                        >
-                          {cat.categoryName}
-                        </SelectItem>
-                      ))}
+                      {categoriesLoading ? (
+                        <div className="px-2 py-6 text-center text-sm text-muted-foreground">
+                          Loading categories...
+                        </div>
+                      ) : categories.length === 0 ? (
+                        <div className="px-2 py-6 text-center text-sm text-muted-foreground">
+                          No categories available
+                        </div>
+                      ) : (
+                        categories
+                          .filter((cat) => cat.CategoryId != null && cat.CategoryId !== undefined && cat.CategoryId > 0)
+                          .map((cat) => (
+                            <SelectItem
+                              key={cat.CategoryId}
+                              value={cat.CategoryId.toString()}
+                            >
+                              {cat.CategoryName}
+                            </SelectItem>
+                          ))
+                      )}
                     </SelectContent>
                   </Select>
                   {errors.categoryId && (
@@ -332,11 +363,11 @@ export default function DocumentUploadPage() {
                     Subject *
                   </Label>
                   <Select
-                    value={formData.subjectId?.toString() || ""}
+                    value={formData.subjectId && formData.subjectId > 0 ? formData.subjectId.toString() : ""}
                     onValueChange={(value) =>
                       handleSelectChange("subjectId", value)
                     }
-                    disabled={loading}
+                    disabled={loading || subjectsLoading}
                   >
                     <SelectTrigger
                       id="subjectId"
@@ -346,17 +377,50 @@ export default function DocumentUploadPage() {
                           : ""
                       }`}
                     >
-                      <SelectValue placeholder="Select a subject" />
+                      <SelectValue placeholder={subjectsLoading ? "Loading..." : subjects.length === 0 ? "No subjects available" : "Select a subject"} />
                     </SelectTrigger>
                     <SelectContent>
-                      {subjects.map((sub) => (
-                        <SelectItem
-                          key={sub.subjectId}
-                          value={sub.subjectId.toString()}
-                        >
-                          {sub.subjectName}
-                        </SelectItem>
-                      ))}
+                      {subjectsLoading ? (
+                        <div className="px-2 py-6 text-center text-sm text-muted-foreground">
+                          Loading subjects...
+                        </div>
+                      ) : subjects.length === 0 ? (
+                        <div className="px-2 py-6 text-center text-sm text-muted-foreground">
+                          No subjects available
+                        </div>
+                      ) : (
+                        subjects.map((sub) => {
+                          // Debug logging
+                          console.log("Processing subject:", sub);
+                          console.log("subjectId:", sub.subjectId, "type:", typeof sub.subjectId);
+                          console.log("subjectName:", sub.subjectName, "type:", typeof sub.subjectName);
+                          
+                          // Safely get ID and name with fallbacks for different property name cases
+                          const subWithPossibleVariants = sub as SubjectResponseDTO & {
+                            SubjectId?: number;
+                            SubjectName?: string;
+                            id?: number;
+                            name?: string;
+                          };
+                          
+                          const id = sub.subjectId ?? subWithPossibleVariants.SubjectId ?? subWithPossibleVariants.id ?? 0;
+                          const name = sub.subjectName ?? subWithPossibleVariants.SubjectName ?? subWithPossibleVariants.name ?? `Subject ${id}`;
+                          
+                          if (!id || id === 0) {
+                            console.warn("Subject has invalid ID:", sub);
+                            return null;
+                          }
+                          
+                          return (
+                            <SelectItem
+                              key={id}
+                              value={id.toString()}
+                            >
+                              {name}
+                            </SelectItem>
+                          );
+                        }).filter(Boolean)
+                      )}
                     </SelectContent>
                   </Select>
                   {errors.subjectId && (
